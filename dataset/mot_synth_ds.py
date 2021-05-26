@@ -86,14 +86,8 @@ class MOTSynthDS(Dataset):
     def __getitem__(self, i):
         # type: (int) -> Tuple[torch.Tensor, torch.Tensor]
 
-        # select sequence number
-        sequence = i // N_SELECTED_FRAMES
-
-        # select frame number
-        frame_n = (i % N_SELECTED_FRAMES) * (N_FRAMES_IN_SEQ // N_SELECTED_FRAMES) + 1
-
         # select sequence name and frame number
-        img = self.mots_ds.loadImgs(self.imgIds[frame_n])[0]
+        img = self.mots_ds.loadImgs(self.imgIds[i])[0]
 
         # load corresponding data
         ann_ids = self.mots_ds.getAnnIds(imgIds=img['id'], catIds=self.catIds, iscrowd=None)
@@ -106,15 +100,15 @@ class MOTSynthDS(Dataset):
         plt.imshow(x_image.permute(1, 2, 0))
         plt.show()
 
-        # 2d image augmentation on x_input TODO TODO  TODO TODO  TODO TODO  TODO TODO  TODO TODO  TODO TODO  TODO TODO
+        # image augmentation
         aug_scale, aug_h, aug_w = aug_info
-        c, h, w = x_image.shape
-        aug_offset_h = -(aug_h - .5) * (h * aug_scale - h)
-        aug_offset_w = -(aug_w - .5) * (w * aug_scale - w)
-        aug_seq = iaa.Sequential([
-            iaa.Affine(scale=aug_scale, translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
-        ])
-        x_image = aug_seq(images=x_image.numpy(), return_batch=False)
+        _, img_h, img_w = x_image.shape
+        # convert the offset calculated for 3d points (for the 3d heatmap) to offset useful for
+        # the Affine transformation by using the imgaug library
+        aug_offset_h = -(aug_h - .5) * (img_h * aug_scale - img_h)
+        aug_offset_w = -(aug_w - .5) * (img_w * aug_scale - img_w)
+        aug_affine = iaa.Affine(scale=aug_scale, translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
+        x_image = aug_affine(images=x_image.numpy(), return_batch=False)
         x_image = torch.from_numpy(x_image)
 
         plt.imshow(x_image.permute(1, 2, 0))

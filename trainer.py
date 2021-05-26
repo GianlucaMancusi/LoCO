@@ -21,6 +21,7 @@ from dataset.training_set import JTATrainingSet
 from models import Autoencoder
 from models import CodePredictor
 from test_metrics import joint_det_metrics
+import imgaug.augmenters as iaa
 
 
 class Trainer(object):
@@ -63,7 +64,6 @@ class Trainer(object):
         # possibly load checkpoint
         self.load_ck()
 
-
     def load_ck(self):
         """
         load training checkpoint
@@ -77,7 +77,6 @@ class Trainer(object):
             self.best_test_f1 = self.best_test_f1
             self.optimizer.load_state_dict(ck['optimizer'])
 
-
     def save_ck(self):
         """
         save training checkpoint
@@ -89,7 +88,6 @@ class Trainer(object):
             'best_test_loss': self.best_test_f1
         }
         torch.save(ck, self.log_path / 'training.ck')
-
 
     def train(self):
         """
@@ -106,6 +104,31 @@ class Trainer(object):
             self.optimizer.zero_grad()
 
             x, y_true = sample
+
+            sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+            img_aug_seq = iaa.Sequential([
+                iaa.OneOf([
+                    iaa.GaussianBlur((0, 3.0)),
+                    iaa.AverageBlur(k=(0, 7)),
+                    iaa.MedianBlur(k=(0, 11)),
+                ]),
+                iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),  # sharpen images
+                iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5),
+                iaa.AddToHueAndSaturation((-20, 20)),
+                sometimes(iaa.MotionBlur(k=[0, 5], angle=[-45, 45])),
+                iaa.OneOf([
+                    iaa.Multiply((0.5, 1.5), per_channel=0.5),
+                    iaa.FrequencyNoiseAlpha(
+                        exponent=(-4, 0),
+                        first=iaa.Multiply((0.5, 1.5), per_channel=True),
+                        second=iaa.LinearContrast((0.5, 2.0))
+                    )
+                ]),
+                iaa.LinearContrast((0.5, 2.0), per_channel=0.5),
+                iaa.Grayscale(alpha=(0.0, 1.0)),
+            ])
+            x = img_aug_seq(images=x)
+
             x, y_true = x.to(self.cnf.device), y_true.to(self.cnf.device)
 
             y_pred = self.code_predictor.forward(x)
@@ -138,7 +161,6 @@ class Trainer(object):
 
         # log epoch duration
         print(f' │ T: {time() - start_time:.2f} s')
-
 
     def test(self):
         """
@@ -206,7 +228,6 @@ class Trainer(object):
         if self.best_test_f1 is None or mean_test_f1 >= self.best_test_f1:
             self.best_test_f1 = mean_test_f1
             torch.save(self.code_predictor.state_dict(), self.log_path / 'best.pth')
-
 
     def run(self):
         """
