@@ -9,7 +9,6 @@ import torch
 from PIL.Image import Image
 from path import Path
 
-
 MAX_LS = np.array([0.27, 0.41, 0.67, 0.93, 0.41, 0.67, 0.92, 0.88, 1.28, 1.69, 0.88, 1.29, 1.70])
 
 
@@ -80,6 +79,29 @@ def local_maxima_3d(hmaps3d, threshold, device='cuda', ret_confs=False):
         return peaks, confidences
     else:
         return peaks
+
+
+def gkern(d, h, w, center, s=2, device='cuda'):
+    # type: (int, int, int, Union[List[int], Tuple[int, int, int]], float, str) -> torch.Tensor
+    """
+    :param d: hmap depth
+    :param h: hmap height
+    :param w: hmap width
+    :param center: center of the Gaussian | ORDER: (x, y, z)
+    :param s: sigma of the Gaussian
+    :return: heatmap (shape torch.Size([d, h, w])) with a gaussian centered in `center`
+    """
+    x = torch.arange(0, w, 1).float().to(device)
+    y = torch.arange(0, h, 1).float().to(device)
+    y = y.unsqueeze(1)
+    z = torch.arange(0, d, 1).float().to(device)
+    z = z.unsqueeze(1).unsqueeze(1)
+
+    x0 = center[0]
+    y0 = center[1]
+    z0 = center[2]
+
+    return torch.exp(-1 * ((x - x0) ** 2 + (y - y0) ** 2 + (z - z0) ** 2) / s ** 2)
 
 
 def rescale_to_real(x2d, y2d, cam_dist, q):

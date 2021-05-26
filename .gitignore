@@ -1,0 +1,12 @@
+### Pycharm stuffs
+.idea/
+*__pycache__/
+
+### images
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+
+log/*

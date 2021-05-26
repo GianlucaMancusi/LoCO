@@ -52,13 +52,13 @@ class JTATrainingSet(Dataset):
         frame_n = (i % N_SELECTED_FRAMES) * (N_FRAMES_IN_SEQ // N_SELECTED_FRAMES) + 1
 
         # read input frame
-        frame_path = self.cnf.jta_path / 'frames' / 'train' / f'seq_{sequence}/{frame_n}.jpg'
+        frame_path = self.cnf.mot_synth_path / 'frames' / 'train' / f'seq_{sequence}/{frame_n}.jpg'
         frame = utils.imread(frame_path)
         frame = transforms.ToTensor()(frame)
         frame = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(frame)
 
         # read GT code
-        code_path = self.cnf.jta_path / 'codes' / f'{sequence}_{frame_n}.data'
+        code_path = self.cnf.mot_synth_path / 'codes' / f'{sequence}_{frame_n}.data'
         code = torch.load(code_path, map_location=torch.device('cpu'))
 
         return frame, code

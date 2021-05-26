@@ -41,7 +41,7 @@ class JTATestingSet(Dataset):
         :param cnf: configuration object
         """
         self.cnf = cnf
-        self.sequences = (cnf.jta_path / 'poses' / 'test').dirs()
+        self.sequences = (cnf.mot_synth_path / 'poses' / 'test').dirs()
         self.keys = []
         for i in range(N_SEQUENCES):
             for j in range(N_SELECTED_FRAMES):
@@ -60,8 +60,8 @@ class JTATestingSet(Dataset):
         sequence, frame = self.keys[i]
 
         # get corresponding data
-        frame_path = self.cnf.jta_path / 'frames' / 'test' / f'seq_{sequence}/{frame}.jpg'
-        data_path = self.cnf.jta_path / 'poses' / 'test' / f'seq_{sequence}/{frame}.data'
+        frame_path = self.cnf.mot_synth_path / 'frames' / 'test' / f'seq_{sequence}/{frame}.jpg'
+        data_path = self.cnf.mot_synth_path / 'poses' / 'test' / f'seq_{sequence}/{frame}.data'
 
         # read input frame
         frame = utils.imread(frame_path)

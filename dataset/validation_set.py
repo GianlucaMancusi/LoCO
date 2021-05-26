@@ -35,7 +35,7 @@ class JTAValidationSet(Dataset):
         :param cnf: configuration object
         """
         self.cnf = cnf
-        self.validation_data_path = cnf.jta_path / 'poses' / 'val'
+        self.validation_data_path = cnf.mot_synth_path / 'poses' / 'val'
         self.sequences = self.validation_data_path.dirs()
 
 
@@ -54,7 +54,7 @@ class JTAValidationSet(Dataset):
         frame = 123
 
         # get corresponding data
-        frame_path = self.cnf.jta_path / 'frames' / 'val' / f'seq_{sequence}/{frame}.jpg'
+        frame_path = self.cnf.mot_synth_path / 'frames' / 'val' / f'seq_{sequence}/{frame}.jpg'
         data_path = self.validation_data_path / f'seq_{sequence}/{frame}.data'
 
         # read input frame

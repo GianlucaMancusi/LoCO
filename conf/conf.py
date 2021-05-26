@@ -72,6 +72,9 @@ class Conf(object):
 
         # read configuration parameters from YAML file
         # or set their default value
+        self.hmap_h = y.get('H_3D', 136)  # type: float # --> VHA Heatmap dimentions
+        self.hmap_w = y.get('W_3D', 240)  # type: float # --> VHA Heatmap dimentions
+        self.hmap_d = y.get('D_3D', 316)  # type: float # --> VHA Heatmap dimentions
         self.q = y.get('Q', 0.31746031746031744)  # type: float # --> quantization factor
         self.lr = y.get('LR', 0.0001)  # type: float # --> learning rate
         self.epochs = y.get('EPOCHS', 999)  # type: int
@@ -80,7 +83,7 @@ class Conf(object):
         self.n_workers = y.get('N_WORKERS', 0)  # type: int
         self.batch_size = y.get('BATCH_SIZE', 1)  # type: int
         self.epoch_len = y.get('EPOCH_LEN', 4096)  # type: int
-        self.jta_path = y.get('JTA_PATH', './jta')  # type: str
+        self.mot_synth_path = y.get('MOTSYNTH_PATH', '. / motsynth')  # type: str
         self.test_set_len = y.get('TEST_SET_LEN', 128)  # type: int
 
         if y.get('DEVICE', None) is not None:
@@ -89,5 +92,5 @@ class Conf(object):
         else:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.jta_path = Path(self.jta_path)
-        assert self.jta_path.exists(), 'the specified directory for the JTA-Dataset does not exists'
+        self.mot_synth_path = Path(self.mot_synth_path)
+        assert self.mot_synth_path.exists(), 'the specified directory for the MOTSynth-Dataset does not exists'

@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 
 import utils
 from conf import Conf
+from dataset.mot_synth_ds import MOTSynthDS
 from dataset.validation_set import JTAValidationSet
 from dataset.training_set import JTATrainingSet
 from models import Autoencoder
@@ -42,7 +43,7 @@ class Trainer(object):
         self.optimizer = optim.Adam(params=self.code_predictor.parameters(), lr=cnf.lr)
 
         # init dataset(s)
-        training_set = JTATrainingSet(cnf)
+        training_set = MOTSynthDS(mode='train', autoencoder=self.autoencoder, cnf=cnf)
         test_set = JTAValidationSet(cnf)
 
         # init train/test loader

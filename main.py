@@ -6,6 +6,9 @@ import torch.backends.cudnn as cudnn
 
 from conf import Conf
 from trainer import Trainer
+import matplotlib
+
+matplotlib.use('Agg')
 
 cudnn.benchmark = True
 
