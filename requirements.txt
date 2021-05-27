@@ -10,3 +10,4 @@ torchvision>=0.2
 tensorboardX>=1.6
 opencv_python>=3.4
 pycocotools
+imagecorruptions

@@ -44,8 +44,8 @@ class Trainer(object):
         self.optimizer = optim.Adam(params=self.code_predictor.parameters(), lr=cnf.lr)
 
         # init dataset(s)
-        training_set = MOTSynthDS(mode='train', autoencoder=self.autoencoder, cnf=cnf)
-        test_set = JTAValidationSet(cnf)
+        training_set = MOTSynthDS(mode='train', cnf=cnf)
+        test_set = MOTSynthDS(mode='test', cnf=cnf)
 
         # init train/test loader
         self.train_loader = DataLoader(training_set, cnf.batch_size, num_workers=cnf.n_workers, shuffle=True)
@@ -105,7 +105,6 @@ class Trainer(object):
 
             x, y_true = sample
 
-            sometimes = lambda aug: iaa.Sometimes(0.5, aug)
             img_aug_seq = iaa.Sequential([
                 iaa.OneOf([
                     iaa.GaussianBlur((0, 3.0)),
@@ -115,7 +114,7 @@ class Trainer(object):
                 iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),  # sharpen images
                 iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5),
                 iaa.AddToHueAndSaturation((-20, 20)),
-                sometimes(iaa.MotionBlur(k=[0, 5], angle=[-45, 45])),
+                iaa.Sometimes(0.5, (iaa.MotionBlur(k=[0, 5], angle=[-45, 45]))),
                 iaa.OneOf([
                     iaa.Multiply((0.5, 1.5), per_channel=0.5),
                     iaa.FrequencyNoiseAlpha(

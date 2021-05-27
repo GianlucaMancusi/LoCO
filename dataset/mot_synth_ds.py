@@ -96,23 +96,43 @@ class MOTSynthDS(Dataset):
         x_heatmap, aug_info = self.generate_3d_heatmap(anns, augmentation=True)
 
         x_image = self.get_frame(file_path=img['file_name'])
+        x_image = np.array(x_image)
 
-        plt.imshow(x_image.permute(1, 2, 0))
-        plt.show()
+        img_aug_seq = iaa.Sequential([
+            iaa.OneOf([
+                iaa.GaussianBlur((0, 3.0)),
+                iaa.AverageBlur(k=(1, 7)),
+                iaa.MedianBlur(k=(1, 11)),
+            ]),
+            iaa.SomeOf((0, 5),
+                       [
+                           iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
+                           iaa.Sometimes(0.5, iaa.imgcorruptlike.MotionBlur(severity=(1, 3))),
+                           iaa.LinearContrast((0.5, 2.0), per_channel=0.5),
+                           iaa.imgcorruptlike.GaussianNoise(severity=(1, 2)),
+                           iaa.SaltAndPepper((0.01, 0.2), per_channel=True),
+                           iaa.Add((-10, 10), per_channel=0.5),
+                           iaa.Multiply((0.5, 1.5), per_channel=0.5),
+                       ], random_order=True),
+        ], random_order=True)
+        x_image = img_aug_seq(image=x_image)
 
         # image augmentation
         aug_scale, aug_h, aug_w = aug_info
-        _, img_h, img_w = x_image.shape
-        # convert the offset calculated for 3d points (for the 3d heatmap) to offset useful for
+        img_h, img_w, _ = x_image.shape
+        # convert the offset calculated for 3d points (for the 3d heat map) to offset useful for
         # the Affine transformation by using the imgaug library
         aug_offset_h = -(aug_h - .5) * (img_h * aug_scale - img_h)
         aug_offset_w = -(aug_w - .5) * (img_w * aug_scale - img_w)
-        aug_affine = iaa.Affine(scale=aug_scale, translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
-        x_image = aug_affine(images=x_image.numpy(), return_batch=False)
-        x_image = torch.from_numpy(x_image)
+        aug_affine = iaa.Affine(scale=aug_scale,
+                                translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
+        x_image = aug_affine(image=x_image, return_batch=False)
 
-        plt.imshow(x_image.permute(1, 2, 0))
+        plt.imshow(x_image)
         plt.show()
+
+        x_image = torch.from_numpy(x_image).type(torch.FloatTensor).permute(2, 0, 1)
+        x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
 
         return x_image, x_heatmap
 
@@ -121,9 +141,9 @@ class MOTSynthDS(Dataset):
         # augmentation initialization (rescale + crop)
         h, w, d = self.cnf.hmap_h, self.cnf.hmap_w, self.cnf.hmap_d
 
-        aug_scale = 2  # np.random.uniform(0.5, 2)
-        aug_h = 1  # np.random.uniform(0, 1)
-        aug_w = 1  # np.random.uniform(0, 1)
+        aug_scale = np.random.uniform(0.5, 2)
+        aug_h = np.random.uniform(0, 1)
+        aug_w = np.random.uniform(0, 1)
         aug_offset_h = aug_h * (h * aug_scale - h)
         aug_offset_w = aug_w * (w * aug_scale - w)
 
@@ -204,8 +224,7 @@ class MOTSynthDS(Dataset):
         # read input frame
         frame_path = self.cnf.mot_synth_path / file_path
         frame = utils.imread(frame_path)
-        frame = transforms.ToTensor()(frame)
-        frame = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(frame)
+        # frame = transforms.ToTensor()(frame)
         return frame
 
     @staticmethod
