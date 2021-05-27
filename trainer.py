@@ -31,7 +31,7 @@ class Trainer(object):
         self.cnf = cnf
 
         # init code predictor
-        self.code_predictor = CodePredictor()
+        self.code_predictor = CodePredictor(half_images=cnf.half_images)
         self.code_predictor = self.code_predictor.to(cnf.device)
 
         # init volumetric heatmap autoencoder
@@ -104,31 +104,9 @@ class Trainer(object):
             self.optimizer.zero_grad()
 
             x, y_true = sample
-
-            img_aug_seq = iaa.Sequential([
-                iaa.OneOf([
-                    iaa.GaussianBlur((0, 3.0)),
-                    iaa.AverageBlur(k=(0, 7)),
-                    iaa.MedianBlur(k=(0, 11)),
-                ]),
-                iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),  # sharpen images
-                iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5),
-                iaa.AddToHueAndSaturation((-20, 20)),
-                iaa.Sometimes(0.5, (iaa.MotionBlur(k=[0, 5], angle=[-45, 45]))),
-                iaa.OneOf([
-                    iaa.Multiply((0.5, 1.5), per_channel=0.5),
-                    iaa.FrequencyNoiseAlpha(
-                        exponent=(-4, 0),
-                        first=iaa.Multiply((0.5, 1.5), per_channel=True),
-                        second=iaa.LinearContrast((0.5, 2.0))
-                    )
-                ]),
-                iaa.LinearContrast((0.5, 2.0), per_channel=0.5),
-                iaa.Grayscale(alpha=(0.0, 1.0)),
-            ])
-            x = img_aug_seq(images=x)
-
             x, y_true = x.to(self.cnf.device), y_true.to(self.cnf.device)
+
+            y_true = self.autoencoder.encode(y_true)
 
             y_pred = self.code_predictor.forward(x)
             loss = nn.MSELoss()(y_pred, y_true)
@@ -174,7 +152,7 @@ class Trainer(object):
         test_res = []
         test_f1s = []
         for step, sample in enumerate(self.test_loader):
-            x, coords3d_true, fx, fy, cx, cy, _ = sample
+            x, coords3d_true, fx, fy, cx, cy = sample
 
             fx, fy, cx, cy = fx.item(), fy.item(), cx.item(), cy.item()
             x = x.to(self.cnf.device)

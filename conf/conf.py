@@ -30,7 +30,6 @@ def set_seed(seed=None):
 class Conf(object):
     HOSTNAME = socket.gethostname()
 
-
     def __init__(self, conf_file_path=None, seed=None, exp_name=None, log=True):
         # type: (str, int, str, bool) -> None
         """
@@ -75,6 +74,7 @@ class Conf(object):
         self.hmap_h = y.get('H_3D', 136)  # type: float # --> VHA Heatmap dimentions
         self.hmap_w = y.get('W_3D', 240)  # type: float # --> VHA Heatmap dimentions
         self.hmap_d = y.get('D_3D', 316)  # type: float # --> VHA Heatmap dimentions
+        self.half_images = bool(y.get('HALF_IMAGES', 0))  # type: bool # --> image shape // 2
         self.q = y.get('Q', 0.31746031746031744)  # type: float # --> quantization factor
         self.lr = y.get('LR', 0.0001)  # type: float # --> learning rate
         self.epochs = y.get('EPOCHS', 999)  # type: int

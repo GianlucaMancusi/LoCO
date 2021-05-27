@@ -87,7 +87,7 @@ class Autoencoder(BaseModel):
         )
 
         if pretrained:
-            self.load_w('models/weights/vha.pth')
+            self.load_w('models/weights/best.pth')
 
 
     def encode(self, x):

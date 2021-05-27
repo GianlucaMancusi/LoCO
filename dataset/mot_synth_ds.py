@@ -34,6 +34,9 @@ N_SELECTED_FRAMES = 180
 # maximum MOTSynth camera distance [m]
 MAX_CAM_DIST = 100
 
+# camera intrinsic parameters: fx, fy, cx, cy
+CAMERA_PARAMS = 1158, 1158, 960, 540
+
 SIGMA = 2
 
 Point3D = Tuple[float, float, float]
@@ -81,7 +84,10 @@ class MOTSynthDS(Dataset):
 
     def __len__(self):
         # type: () -> int
-        return len(self.imgIds)
+        if self.mode == 'train':
+            return len(self.imgIds)
+        elif self.mode in ('val', 'test'):
+            return self.cnf.test_set_len
 
     def __getitem__(self, i):
         # type: (int) -> Tuple[torch.Tensor, torch.Tensor]
@@ -93,10 +99,12 @@ class MOTSynthDS(Dataset):
         ann_ids = self.mots_ds.getAnnIds(imgIds=img['id'], catIds=self.catIds, iscrowd=None)
         anns = self.mots_ds.loadAnns(ann_ids)
 
-        x_heatmap, aug_info = self.generate_3d_heatmap(anns, augmentation=True)
+        x_heatmap, aug_info, y = self.generate_3d_heatmap(anns, augmentation=True)
 
         x_image = self.get_frame(file_path=img['file_name'])
         x_image = np.array(x_image)
+
+
 
         img_aug_seq = iaa.Sequential([
             iaa.OneOf([
@@ -114,6 +122,7 @@ class MOTSynthDS(Dataset):
                            iaa.Add((-10, 10), per_channel=0.5),
                            iaa.Multiply((0.5, 1.5), per_channel=0.5),
                        ], random_order=True),
+            iaa.Resize(.5) if self.cnf.half_images else iaa.Identity()
         ], random_order=True)
         x_image = img_aug_seq(image=x_image)
 
@@ -134,10 +143,13 @@ class MOTSynthDS(Dataset):
         x_image = torch.from_numpy(x_image).type(torch.FloatTensor).permute(2, 0, 1)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
 
-        return x_image, x_heatmap
+        if self.mode == 'train':
+            return x_image, x_heatmap
+        elif self.mode in ('val', 'test'):
+            return (x_image, y, *CAMERA_PARAMS)
 
     def generate_3d_heatmap(self, anns, augmentation):
-        # type: (List[dict], bool) -> Tuple[Tensor, Tuple[float, float, float]]
+        # type: (List[dict], bool) -> Tuple[Tensor, Tuple[float, float, float], Any]
         # augmentation initialization (rescale + crop)
         h, w, d = self.cnf.hmap_h, self.cnf.hmap_w, self.cnf.hmap_d
 
@@ -218,7 +230,7 @@ class MOTSynthDS(Dataset):
             all_hmaps.append(x)
         y = json.dumps(y)
         x = torch.cat(tuple([h.unsqueeze(0) for h in all_hmaps]))
-        return x, (aug_scale, aug_h, aug_w)
+        return x, (aug_scale, aug_h, aug_w), y
 
     def get_frame(self, file_path):
         # read input frame
