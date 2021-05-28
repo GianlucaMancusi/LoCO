@@ -10,6 +10,7 @@ import torch
 import yaml
 import os
 from path import Path
+import termcolor
 
 
 def set_seed(seed=None):
@@ -56,6 +57,8 @@ class Conf(object):
         # set random seed
         self.seed = set_seed(seed)  # type: int
 
+        self.keys_to_hide = list(self.__dict__.keys()) + ['keys_to_hide']
+
         # if the configuration file is not specified
         # try to load a configuration file based on the experiment name
         tmp = Path(__file__).parent / (self.exp_name + '.yaml')
@@ -74,17 +77,18 @@ class Conf(object):
         self.hmap_h = y.get('H_3D', 136)  # type: float # --> VHA Heatmap dimentions
         self.hmap_w = y.get('W_3D', 240)  # type: float # --> VHA Heatmap dimentions
         self.hmap_d = y.get('D_3D', 316)  # type: float # --> VHA Heatmap dimentions
-        self.half_images = bool(y.get('HALF_IMAGES', 0))  # type: bool # --> image shape // 2
         self.q = y.get('Q', 0.31746031746031744)  # type: float # --> quantization factor
         self.lr = y.get('LR', 0.0001)  # type: float # --> learning rate
+        self.half_images = bool(y.get('HALF_IMAGES', 0))  # type: bool # --> image shape // 2
         self.epochs = y.get('EPOCHS', 999)  # type: int
         self.det_th = y.get('DET_TH', 0.4)  # type: float # --> detection threshold for test metrics
         self.nms_th = y.get('NMS_TH', 0.1)  # type: float
         self.n_workers = y.get('N_WORKERS', 0)  # type: int
         self.batch_size = y.get('BATCH_SIZE', 1)  # type: int
         self.epoch_len = y.get('EPOCH_LEN', 4096)  # type: int
-        self.mot_synth_path = y.get('MOTSYNTH_PATH', '. / motsynth')  # type: str
         self.test_set_len = y.get('TEST_SET_LEN', 128)  # type: int
+        self.mot_synth_ann_path = y.get('MOTSYNTH_ANN_PATH', '. / motsynth')  # type: str
+        self.mot_synth_path = y.get('MOTSYNTH_PATH', '. / motsynth')  # type: str
 
         if y.get('DEVICE', None) is not None:
             os.environ['CUDA_VISIBLE_DEVICES'] = str(y.get('DEVICE').split(':')[1])
@@ -92,5 +96,24 @@ class Conf(object):
         else:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+        self.mot_synth_ann_path = Path(self.mot_synth_ann_path)
         self.mot_synth_path = Path(self.mot_synth_path)
+        assert self.mot_synth_ann_path.exists(), 'the specified directory for the MOTSynth annotation dataset does not exists'
         assert self.mot_synth_path.exists(), 'the specified directory for the MOTSynth-Dataset does not exists'
+
+    def __str__(self):
+        # type: () -> str
+        out_str = ''
+        for key in self.__dict__:
+            if key in self.keys_to_hide:
+                continue
+            value = self.__dict__[key]
+            if type(value) is Path or type(value) is str:
+                value = termcolor.colored(value, 'yellow')
+            else:
+                value = termcolor.colored(f'{value}', 'magenta')
+            out_str += termcolor.colored(f'{key.upper()}', 'blue')
+            out_str += termcolor.colored(': ', 'red')
+            out_str += value
+            out_str += '\n'
+        return out_str[:-1]

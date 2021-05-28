@@ -60,8 +60,8 @@ class CodePredictor(BaseModel):
         self.main = nn.Sequential(
             BasicBlockTransposed(in_channels=2048, out_channels=1024),
             BasicBlockTransposed(in_channels=1024, out_channels=512) if self.half_images else BasicBlock(
-                in_channels=1024, out_channels=512, half_images=half_images),
-            BasicBlock(in_channels=512, out_channels=256, half_images=half_images),
+                in_channels=1024, out_channels=512, half_images=self.half_images),
+            BasicBlock(in_channels=512, out_channels=256, half_images=self.half_images),
             nn.Conv2d(in_channels=256, out_channels=79, kernel_size=1, padding=0),
         )
 
@@ -78,7 +78,7 @@ def main():
     batch_size = 1
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    half_images = True
+    half_images = False
 
     model = CodePredictor(half_images=half_images).to(device)
     print(model)

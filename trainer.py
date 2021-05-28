@@ -23,6 +23,8 @@ from models import CodePredictor
 from test_metrics import joint_det_metrics
 import imgaug.augmenters as iaa
 
+import matplotlib.pyplot as plt
+
 
 class Trainer(object):
 
@@ -151,8 +153,11 @@ class Trainer(object):
         test_prs = []
         test_res = []
         test_f1s = []
+
+        test_losses = []
+
         for step, sample in enumerate(self.test_loader):
-            x, coords3d_true, fx, fy, cx, cy = sample
+            x, heatmap, coords3d_true, fx, fy, cx, cy = sample
 
             fx, fy, cx, cy = fx.item(), fy.item(), cx.item(), cy.item()
             x = x.to(self.cnf.device)
@@ -163,6 +168,9 @@ class Trainer(object):
 
             # code --> [decode] --> hmap(s)
             hmap_pred = self.autoencoder.decode(code_pred).squeeze()
+
+            loss = nn.MSELoss()(code_pred, self.autoencoder.encode(heatmap.to(self.cnf.device)))
+            test_losses.append(loss.item())
 
             # hmap --> [local_maxima_3d] --> rescaled pseudo-3D coordinates
             coords2d_pred = utils.local_maxima_3d(hmaps3d=hmap_pred, threshold=0.1, device=self.cnf.device)
@@ -186,6 +194,10 @@ class Trainer(object):
         mean_test_pr = float(np.mean(test_prs))
         mean_test_re = float(np.mean(test_res))
         mean_test_f1 = float(np.mean(test_f1s))
+
+        # log average loss
+        mean_test_loss = np.mean(test_losses)  # type: float
+        self.sw.add_scalar(tag='test/loss', scalar_value=mean_test_loss, global_step=self.epoch)
 
         # print test metrics
         print(

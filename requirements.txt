@@ -1,3 +1,4 @@
+termcolor
 imgaug
 PyYAML>=3
 click>=6.7

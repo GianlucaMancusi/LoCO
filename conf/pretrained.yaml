@@ -12,4 +12,5 @@ BATCH_SIZE: 1
 DEVICE: 'cuda:0'
 EPOCH_LEN: 4096
 TEST_SET_LEN: 128
-MOTSYNTH_PATH: 'Z:/Datasets/MOTSynth'
+MOTSYNTH_ANN_PATH: 'Z:/Datasets/MOTSynth_clean_2' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth_clean_2/'
+MOTSYNTH_PATH: 'Z:/Datasets/MOTSynth' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth/'

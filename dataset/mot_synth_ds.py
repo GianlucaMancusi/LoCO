@@ -17,8 +17,11 @@ import matplotlib.pyplot as plt
 import utils
 from conf import Conf
 
+import platform
+
+is_windows = any(platform.win32_ver())
+
 # 14 useful joints for the MOTSynth dataset
-from models import BaseModel
 
 USEFUL_JOINTS = [0, 2, 4, 5, 6, 8, 9, 10, 16, 17, 18, 19, 20, 21]
 
@@ -51,7 +54,7 @@ class MOTSynthDS(Dataset):
     """
 
     def __init__(self, mode, cnf=None, debug=False):
-        # type: (str, BaseModel, Conf, debug) -> None
+        # type: (str, Conf, bool) -> None
         """
         :param mode: values in {'train', 'val'}
         :param cnf: configuration object
@@ -59,16 +62,25 @@ class MOTSynthDS(Dataset):
         self.mode = mode
         self.cnf = cnf
         self.debug = debug
-        assert mode in {'train', 'val', 'test'}, '`mode` must be \'train\' or \'val\''
+        assert self.mode in {'train', 'val', 'test'}, '`mode` must be \'train\' or \'val\''
 
         self.mots_ds = None
-        if mode == 'train':
-            self.mots_ds = MOTS(path.join(self.cnf.mot_synth_path, 'annotations', '000.json'))
-            # self.mots_ds = MOTS(path.join(self.cnf.mot_synth_path, 'annotation_groups', 'MOTSynth_annotations_40.json'))
-        if mode == 'val':
-            self.mots_ds = MOTS(path.join(self.cnf.mot_synth_path, 'annotations', '001.json'))
-        if mode == 'test':
-            self.mots_ds = MOTS(path.join(self.cnf.mot_synth_path, 'annotations', '002.json'))
+        path_to_anns = None
+
+        if self.mode == 'train':
+            if is_windows:
+                path_to_anns = path.join(self.cnf.mot_synth_ann_path, 'annotations', '000.json')
+            else:
+                path_to_anns = path.join(self.cnf.mot_synth_ann_path, 'annotation_groups',
+                                         'MOTSynth_annotations_10_train.json')
+        if self.mode in ('val', 'test'):
+            if is_windows:
+                path_to_anns = path.join(self.cnf.mot_synth_ann_path, 'annotations', '002.json')
+            else:
+                path_to_anns = path.join(self.cnf.mot_synth_ann_path, 'annotation_groups',
+                                         'MOTSynth_annotations_10_test.json')
+        print(f'Annotation path to load: {path_to_anns}')
+        self.mots_ds = MOTS(path_to_anns)
 
         self.catIds = self.mots_ds.getCatIds(catNms=['person'])
         self.imgIds = self.mots_ds.getImgIds(catIds=self.catIds)
@@ -104,8 +116,6 @@ class MOTSynthDS(Dataset):
         x_image = self.get_frame(file_path=img['file_name'])
         x_image = np.array(x_image)
 
-
-
         img_aug_seq = iaa.Sequential([
             iaa.OneOf([
                 iaa.GaussianBlur((0, 3.0)),
@@ -137,16 +147,13 @@ class MOTSynthDS(Dataset):
                                 translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
         x_image = aug_affine(image=x_image, return_batch=False)
 
-        plt.imshow(x_image)
-        plt.show()
-
         x_image = torch.from_numpy(x_image).type(torch.FloatTensor).permute(2, 0, 1)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
 
         if self.mode == 'train':
             return x_image, x_heatmap
         elif self.mode in ('val', 'test'):
-            return (x_image, y, *CAMERA_PARAMS)
+            return (x_image, x_heatmap, y, *CAMERA_PARAMS)
 
     def generate_3d_heatmap(self, anns, augmentation):
         # type: (List[dict], bool) -> Tuple[Tensor, Tuple[float, float, float], Any]

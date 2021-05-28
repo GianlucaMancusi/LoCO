@@ -11,6 +11,7 @@ NMS_TH: 0.1
 N_WORKERS: 1
 BATCH_SIZE: 1
 DEVICE: 'cuda:0'
-EPOCH_LEN: 1
+EPOCH_LEN: 20
 TEST_SET_LEN: 1
-MOTSYNTH_PATH: 'Z:/Datasets/MOTSynth'
+MOTSYNTH_ANN_PATH: 'Z:/Datasets/MOTSynth_clean_2' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth_clean_2/'
+MOTSYNTH_PATH: 'Z:/Datasets/MOTSynth' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth/'
