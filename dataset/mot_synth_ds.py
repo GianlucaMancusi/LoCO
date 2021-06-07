@@ -19,8 +19,6 @@ from conf import Conf
 
 import platform
 
-is_windows = any(platform.win32_ver())
-
 # 14 useful joints for the MOTSynth dataset
 
 USEFUL_JOINTS = [0, 2, 4, 5, 6, 8, 9, 10, 16, 17, 18, 19, 20, 21]
@@ -63,6 +61,8 @@ class MOTSynthDS(Dataset):
         self.cnf = cnf
         self.debug = debug
         assert self.mode in {'train', 'val', 'test'}, '`mode` must be \'train\' or \'val\''
+
+        is_windows = any(platform.win32_ver())
 
         self.mots_ds = None
         path_to_anns = None
@@ -111,47 +111,52 @@ class MOTSynthDS(Dataset):
         ann_ids = self.mots_ds.getAnnIds(imgIds=img['id'], catIds=self.catIds, iscrowd=None)
         anns = self.mots_ds.loadAnns(ann_ids)
 
-        x_heatmap, aug_info, y = self.generate_3d_heatmap(anns, augmentation=True)
+        augmentation = self.cnf.data_augmentation if self.mode == 'train' else False
+        x_heatmap, aug_info, y = self.generate_3d_heatmap(anns, augmentation=augmentation)
 
         x_image = self.get_frame(file_path=img['file_name'])
-        x_image = np.array(x_image)
 
-        img_aug_seq = iaa.Sequential([
-            iaa.OneOf([
-                iaa.GaussianBlur((0, 3.0)),
-                iaa.AverageBlur(k=(1, 7)),
-                iaa.MedianBlur(k=(1, 11)),
-            ]),
-            iaa.SomeOf((0, 5),
-                       [
-                           iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
-                           iaa.Sometimes(0.5, iaa.imgcorruptlike.MotionBlur(severity=(1, 3))),
-                           iaa.LinearContrast((0.5, 2.0), per_channel=0.5),
-                           iaa.imgcorruptlike.GaussianNoise(severity=(1, 2)),
-                           iaa.SaltAndPepper((0.01, 0.2), per_channel=True),
-                           iaa.Add((-10, 10), per_channel=0.5),
-                           iaa.Multiply((0.5, 1.5), per_channel=0.5),
-                       ], random_order=True),
-            iaa.Resize(.5) if self.cnf.half_images else iaa.Identity()
-        ], random_order=True)
-        x_image = img_aug_seq(image=x_image)
+        # utils.visualize_3d_hmap(x_heatmap[0], np.array(x_image))     # TODO rimuovere
+        # x_image = np.array(x_image)
 
-        # image augmentation
-        aug_scale, aug_h, aug_w = aug_info
-        img_h, img_w, _ = x_image.shape
-        # convert the offset calculated for 3d points (for the 3d heat map) to offset useful for
-        # the Affine transformation by using the imgaug library
-        aug_offset_h = -(aug_h - .5) * (img_h * aug_scale - img_h)
-        aug_offset_w = -(aug_w - .5) * (img_w * aug_scale - img_w)
-        aug_affine = iaa.Affine(scale=aug_scale,
-                                translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
-        x_image = aug_affine(image=x_image, return_batch=False)
+        if augmentation:
+            img_aug_seq = iaa.Sequential([
+                iaa.OneOf([
+                    iaa.GaussianBlur((0, 3.0)),
+                    iaa.AverageBlur(k=(1, 7)),
+                    iaa.MedianBlur(k=(1, 11)),
+                ]),
+                iaa.SomeOf((0, 5),
+                           [
+                               iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
+                               iaa.Sometimes(0.5, iaa.imgcorruptlike.MotionBlur(severity=(1, 3))),
+                               iaa.LinearContrast((0.5, 2.0), per_channel=0.5),
+                               iaa.imgcorruptlike.GaussianNoise(severity=(1, 2)),
+                               iaa.SaltAndPepper((0.01, 0.2), per_channel=True),
+                               iaa.Add((-10, 10), per_channel=0.5),
+                               iaa.Multiply((0.5, 1.5), per_channel=0.5),
+                           ], random_order=True),
+                iaa.Resize(.5) if self.cnf.half_images else iaa.Identity()
+            ], random_order=True)
+            x_image = img_aug_seq(image=x_image)
 
-        x_image = torch.from_numpy(x_image).type(torch.FloatTensor).permute(2, 0, 1)
+            # image augmentation
+            aug_scale, aug_h, aug_w = aug_info
+            img_h, img_w, _ = x_image.shape
+            # convert the offset calculated for 3d points (for the 3d heat map) to offset useful for
+            # the Affine transformation by using the imgaug library
+            aug_offset_h = -(aug_h - .5) * (img_h * aug_scale - img_h)
+            aug_offset_w = -(aug_w - .5) * (img_w * aug_scale - img_w)
+            aug_affine = iaa.Affine(scale=aug_scale,
+                                    translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
+            x_image = aug_affine(image=x_image, return_batch=False)
+
+        # x_image = torch.from_numpy(x_image).type(torch.FloatTensor).permute(2, 0, 1)
+        x_image = transforms.ToTensor()(x_image)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
 
         if self.mode == 'train':
-            return x_image, x_heatmap
+            return x_image, x_heatmap, y
         elif self.mode in ('val', 'test'):
             return (x_image, x_heatmap, y, *CAMERA_PARAMS)
 
@@ -160,9 +165,9 @@ class MOTSynthDS(Dataset):
         # augmentation initialization (rescale + crop)
         h, w, d = self.cnf.hmap_h, self.cnf.hmap_w, self.cnf.hmap_d
 
-        aug_scale = np.random.uniform(0.5, 2)
-        aug_h = np.random.uniform(0, 1)
-        aug_w = np.random.uniform(0, 1)
+        aug_scale = np.random.uniform(0.5, 2) if augmentation else 1
+        aug_h = np.random.uniform(0, 1) if augmentation else 0
+        aug_w = np.random.uniform(0, 1) if augmentation else 0
         aug_offset_h = aug_h * (h * aug_scale - h)
         aug_offset_w = aug_w * (w * aug_scale - w)
 
@@ -233,7 +238,7 @@ class MOTSynthDS(Dataset):
                         self.gaussian_patch[gza:gzb + 1, gya:gyb + 1, gxa:gxb + 1].unsqueeze(0)
                     ])), 0)[0]
 
-                y.append([USEFUL_JOINTS.index(jtype)] + center)
+                y.append([USEFUL_JOINTS.index(jtype)] + [joint['x3d'], joint['y3d'], joint['z3d']])
             all_hmaps.append(x)
         y = json.dumps(y)
         x = torch.cat(tuple([h.unsqueeze(0) for h in all_hmaps]))
@@ -242,7 +247,7 @@ class MOTSynthDS(Dataset):
     def get_frame(self, file_path):
         # read input frame
         frame_path = self.cnf.mot_synth_path / file_path
-        frame = utils.imread(frame_path)
+        frame = utils.imread(frame_path).convert('RGB')
         # frame = transforms.ToTensor()(frame)
         return frame
 
@@ -250,31 +255,51 @@ class MOTSynthDS(Dataset):
     def get_joints_from_anns(anns, jtype):
         joints = []
         for ann in anns:
-            joints.append({
-                'x2d': ann['keypoints'][3 * jtype],
-                'y2d': ann['keypoints'][3 * jtype + 1],
-                'x3d': ann['keypoints_3d'][4 * jtype],
-                'y3d': ann['keypoints_3d'][4 * jtype + 1],
-                'z3d': ann['keypoints_3d'][4 * jtype + 2],
-                'visibility': ann['keypoints_3d'][4 * jtype + 3],
-                # visibility=0: not labeled (in which case x=y=z=0),
-                # visibility=1: labeled but not visible
-                # visibility=2: labeled and visible.
-            })
+            n_visible_joints = np.array([_ == 2 for _ in ann['keypoints'][2::3]]).sum()
+            if n_visible_joints > 22 * 0.25:  # TODO DEBUG VISIBILITY
+                joints.append({
+                    'x2d': ann['keypoints'][3 * jtype],
+                    'y2d': ann['keypoints'][3 * jtype + 1],
+                    'x3d': ann['keypoints_3d'][4 * jtype],
+                    'y3d': ann['keypoints_3d'][4 * jtype + 1],
+                    'z3d': ann['keypoints_3d'][4 * jtype + 2],
+                    'visibility': ann['keypoints_3d'][4 * jtype + 3],
+                    # visibility=0: not labeled (in which case x=y=z=0),
+                    # visibility=1: labeled but not visible
+                    # visibility=2: labeled and visible.
+                })
         return joints
 
 
 def main():
     import utils
+    from test_metrics import joint_det_metrics
+
     cnf = Conf(exp_name='default')
+    cnf.data_augmentation = False
 
     ds = MOTSynthDS(mode='train', cnf=cnf, debug=True)
     loader = DataLoader(dataset=ds, batch_size=1, num_workers=0, shuffle=False)
 
     for i, sample in enumerate(loader):
-        x_2d_image, y = sample
+        x_2d_image, heatmaps, y = sample
+
+        coords3d_true = json.loads(y[0])
 
         print(f'({i}) Dataset example: x.shape={tuple(x_2d_image.shape)}, y={y}')
+
+        coords2d_pred = utils.local_maxima_3d(hmaps3d=heatmaps.cuda().squeeze(), threshold=0.1, device='cuda')
+
+        # rescaled pseudo-3D coordinates --> [to_3d] --> real 3D coordinates
+        coords3d_pred = []
+        for i in range(len(coords2d_pred)):
+            joint_type, cam_dist, y2d, x2d = coords2d_pred[i]
+            x2d, y2d, cam_dist = utils.rescale_to_real(x2d=x2d, y2d=y2d, cam_dist=cam_dist, q=cnf.q)
+            x3d, y3d, z3d = utils.to3d(x2d=x2d, y2d=y2d, cam_dist=cam_dist, fx=1158, fy=1158, cx=960, cy=540)
+            coords3d_pred.append((joint_type, x3d, y3d, z3d))
+
+        # real 3D
+        metrics = joint_det_metrics(points_pred=coords3d_pred, points_true=coords3d_true, th=cnf.det_th)
 
 
 if __name__ == '__main__':

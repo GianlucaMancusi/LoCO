@@ -36,7 +36,7 @@ def compute(exp_name):
     cnf = Conf(exp_name=exp_name)
 
     # init Code Predictor
-    predictor = CodePredictor()  # type: BaseModel
+    predictor = CodePredictor(half_images=cnf.half_images)  # type: BaseModel
     predictor.to(cnf.device)
     predictor.eval()
     predictor.requires_grad(False)

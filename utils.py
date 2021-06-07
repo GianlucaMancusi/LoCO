@@ -81,6 +81,60 @@ def local_maxima_3d(hmaps3d, threshold, device='cuda', ret_confs=False):
         return peaks
 
 
+def visualize_3d_hmap(hmap, image=None):
+    # type: (Union[np.ndarray, torch.Tensor]) -> None
+    """
+    Interactive visualization of 3D heatmaps.
+    :param hmap: 3D heatmap with values in [0,1] and shape (D, H, W)
+    """
+    import cv2
+
+    if not (type(hmap) is np.ndarray):
+        try:
+            hmap = hmap.cpu().numpy()
+        except:
+            hmap = hmap.detach().cpu().numpy()
+
+    hmap[hmap < 0] = 0
+    hmap[hmap > 1] = 1
+    hmap = (hmap * 255).astype(np.uint8)
+    for d, x in enumerate(hmap):
+        x = cv2.applyColorMap(x, colormap=cv2.COLORMAP_JET)
+
+        if image is not None:
+            image = cv2.resize(image, (1280, 720))
+            x = cv2.resize(x, (1280, 720), interpolation=cv2.INTER_NEAREST)
+            x = cv2.addWeighted(x, .5, image, .5, 0.0)
+
+        x = cv2.putText(x, f'{d}', (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 128, 128), 2, cv2.LINE_AA)
+        cv2.imshow(f'press ESC to advance in the depth dimension', x)
+        cv2.waitKey()
+    cv2.destroyAllWindows()
+
+
+def visualize_multiple_3d_hmap(hmaps):
+    # type: (List[torch.Tensor], Any) -> None
+    """
+    Interactive visualization of 3D heatmaps.
+    :param hmap: 3D heatmap with values in [0,1] and shape (D, H, W)
+    """
+    import cv2
+
+    hmap_gt = hmaps[0].cpu().numpy()
+    hmap_pr = hmaps[1].cpu().numpy()
+
+    hmap = np.concatenate((hmap_gt, hmap_pr), axis=2)
+    hmap[hmap < 0] = 0
+    hmap[hmap > 1] = 1
+    hmap = (hmap * 255).astype(np.uint8)
+    for d, x in enumerate(hmap):
+        x = cv2.applyColorMap(x, colormap=cv2.COLORMAP_JET)
+        x = cv2.putText(x, f'{d}', (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 128, 128), 2, cv2.LINE_AA)
+        cv2.imshow(f'press ESC to advance in the depth dimension', x)
+        cv2.waitKey()
+    cv2.destroyAllWindows()
+
+
 def gkern(d, h, w, center, s=2, device='cuda'):
     # type: (int, int, int, Union[List[int], Tuple[int, int, int]], float, str) -> torch.Tensor
     """

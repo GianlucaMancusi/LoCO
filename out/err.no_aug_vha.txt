@@ -1,0 +1,1 @@
+slurmstepd-aimagelab-srv-10: error: *** JOB 1301559 ON aimagelab-srv-10 CANCELLED AT 2021-05-30T18:40:45 DUE TO TIME LIMIT ***

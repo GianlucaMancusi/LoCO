@@ -80,6 +80,7 @@ class Conf(object):
         self.q = y.get('Q', 0.31746031746031744)  # type: float # --> quantization factor
         self.lr = y.get('LR', 0.0001)  # type: float # --> learning rate
         self.half_images = bool(y.get('HALF_IMAGES', 0))  # type: bool # --> image shape // 2
+        self.data_augmentation = bool(y.get('DATA_AUGMENTATION', 0))  # type: bool # --> 0: no data aug, 1: use data aug
         self.epochs = y.get('EPOCHS', 999)  # type: int
         self.det_th = y.get('DET_TH', 0.4)  # type: float # --> detection threshold for test metrics
         self.nms_th = y.get('NMS_TH', 0.1)  # type: float

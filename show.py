@@ -93,7 +93,7 @@ def results(cnf):
     """
 
     # init Code Predictor
-    code_predictor = CodePredictor()
+    code_predictor = CodePredictor(half_images=cnf.half_images)
     code_predictor.to(cnf.device)
     code_predictor.eval()
     code_predictor.requires_grad(False)

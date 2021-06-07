@@ -16,14 +16,9 @@ from torch.utils.data import DataLoader
 import utils
 from conf import Conf
 from dataset.mot_synth_ds import MOTSynthDS
-from dataset.validation_set import JTAValidationSet
-from dataset.training_set import JTATrainingSet
 from models import Autoencoder
 from models import CodePredictor
 from test_metrics import joint_det_metrics
-import imgaug.augmenters as iaa
-
-import matplotlib.pyplot as plt
 
 
 class Trainer(object):
@@ -105,13 +100,12 @@ class Trainer(object):
         for step, sample in enumerate(self.train_loader):
             self.optimizer.zero_grad()
 
-            x, y_true = sample
-            x, y_true = x.to(self.cnf.device), y_true.to(self.cnf.device)
+            x, heatmap_true, _ = sample
+            x, heatmap_true = x.to(self.cnf.device), heatmap_true.to(self.cnf.device)
 
-            y_true = self.autoencoder.encode(y_true)
+            code_pred = self.code_predictor.forward(x)
 
-            y_pred = self.code_predictor.forward(x)
-            loss = nn.MSELoss()(y_pred, y_true)
+            loss = nn.MSELoss()(code_pred, self.autoencoder.encode(heatmap_true))
             loss.backward()
             train_losses.append(loss.item())
 
@@ -159,8 +153,8 @@ class Trainer(object):
         for step, sample in enumerate(self.test_loader):
             x, heatmap, coords3d_true, fx, fy, cx, cy = sample
 
+            x, heatmap = x.to(self.cnf.device), heatmap.to(self.cnf.device)
             fx, fy, cx, cy = fx.item(), fy.item(), cx.item(), cy.item()
-            x = x.to(self.cnf.device)
             coords3d_true = json.loads(coords3d_true[0])
 
             # image --> [code_predictor] --> code
@@ -169,8 +163,12 @@ class Trainer(object):
             # code --> [decode] --> hmap(s)
             hmap_pred = self.autoencoder.decode(code_pred).squeeze()
 
-            loss = nn.MSELoss()(code_pred, self.autoencoder.encode(heatmap.to(self.cnf.device)))
-            test_losses.append(loss.item())
+            # utils.visualize_multiple_3d_hmap(hmap_pred)
+            # utils.visualize_multiple_3d_hmap(heatmap)
+
+            with torch.no_grad():
+                loss = nn.MSELoss()(code_pred, self.autoencoder.encode(heatmap))
+                test_losses.append(loss.item())
 
             # hmap --> [local_maxima_3d] --> rescaled pseudo-3D coordinates
             coords2d_pred = utils.local_maxima_3d(hmaps3d=hmap_pred, threshold=0.1, device=self.cnf.device)

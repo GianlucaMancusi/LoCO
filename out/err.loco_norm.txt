@@ -1,1 +1,1 @@
-slurmstepd-carabbaggio: error: *** JOB 1300783 ON carabbaggio CANCELLED AT 2021-05-28T14:17:59 ***
+slurmstepd-pippobaudo: error: *** JOB 1301651 ON pippobaudo CANCELLED AT 2021-05-30T23:56:25 ***
