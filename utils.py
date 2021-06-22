@@ -97,6 +97,7 @@ def visualize_3d_hmap(hmap, image=None):
 
     hmap[hmap < 0] = 0
     hmap[hmap > 1] = 1
+    #hmap = hmap / hmap.max()
     hmap = (hmap * 255).astype(np.uint8)
     for d, x in enumerate(hmap):
         x = cv2.applyColorMap(x, colormap=cv2.COLORMAP_JET)

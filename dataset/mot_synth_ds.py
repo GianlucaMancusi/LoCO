@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from torchvision import transforms
 import imgaug.augmenters as iaa
+
 import matplotlib.pyplot as plt
 
 import utils
@@ -111,15 +112,14 @@ class MOTSynthDS(Dataset):
         ann_ids = self.mots_ds.getAnnIds(imgIds=img['id'], catIds=self.catIds, iscrowd=None)
         anns = self.mots_ds.loadAnns(ann_ids)
 
-        augmentation = self.cnf.data_augmentation if self.mode == 'train' else False
+        augmentation = self.cnf.data_augmentation if self.mode == 'train' else 'no'
         x_heatmap, aug_info, y = self.generate_3d_heatmap(anns, augmentation=augmentation)
 
         x_image = self.get_frame(file_path=img['file_name'])
 
-        # utils.visualize_3d_hmap(x_heatmap[0], np.array(x_image))     # TODO rimuovere
-        # x_image = np.array(x_image)
+        x_image = np.array(x_image)
 
-        if augmentation:
+        if augmentation in ('images', 'all'):
             img_aug_seq = iaa.Sequential([
                 iaa.OneOf([
                     iaa.GaussianBlur((0, 3.0)),
@@ -151,9 +151,14 @@ class MOTSynthDS(Dataset):
                                     translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
             x_image = aug_affine(image=x_image, return_batch=False)
 
+        x_real_image = x_image.copy()
+
+        #utils.visualize_3d_hmap(x_heatmap[0], np.array(x_image))     # TODO rimuovere
+        #plt.imsave(f'out/imgs/img_aug{i}.jpg', x_image)
         # x_image = torch.from_numpy(x_image).type(torch.FloatTensor).permute(2, 0, 1)
         x_image = transforms.ToTensor()(x_image)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
+
 
         if self.mode == 'train':
             return x_image, x_heatmap, y
@@ -165,9 +170,9 @@ class MOTSynthDS(Dataset):
         # augmentation initialization (rescale + crop)
         h, w, d = self.cnf.hmap_h, self.cnf.hmap_w, self.cnf.hmap_d
 
-        aug_scale = np.random.uniform(0.5, 2) if augmentation else 1
-        aug_h = np.random.uniform(0, 1) if augmentation else 0
-        aug_w = np.random.uniform(0, 1) if augmentation else 0
+        aug_scale = np.random.uniform(0.5, 2) if augmentation == 'all' else 1
+        aug_h = np.random.uniform(0, 1) if augmentation == 'all' else 0
+        aug_w = np.random.uniform(0, 1) if augmentation == 'all' else 0
         aug_offset_h = aug_h * (h * aug_scale - h)
         aug_offset_w = aug_w * (w * aug_scale - w)
 
@@ -192,10 +197,11 @@ class MOTSynthDS(Dataset):
                 joint['y2d'] /= 8
 
                 # augmentation (rescale + crop)
-                if augmentation:
+                if augmentation == 'all':
                     joint['x2d'] = joint['x2d'] * aug_scale - aug_offset_w
                     joint['y2d'] = joint['y2d'] * aug_scale - aug_offset_h
                     cam_dist = cam_dist / aug_scale
+
 
                 center = [
                     int(round(joint['x2d'])),
@@ -273,13 +279,30 @@ class MOTSynthDS(Dataset):
 
 def main():
     import utils
+    from models import Autoencoder
     from test_metrics import joint_det_metrics
+    from models import CodePredictor
 
-    cnf = Conf(exp_name='default')
-    cnf.data_augmentation = False
+    cnf = Conf(exp_name='loco_aug')
+    cnf.data_augmentation = True
+
+    # init volumetric heatmap autoencoder
+    autoencoder = Autoencoder()
+    autoencoder.eval()
+    autoencoder.requires_grad(False)
+    autoencoder = autoencoder.to(cnf.device)
+
+    code_predictor = CodePredictor(half_images=False)
+    code_predictor = code_predictor.to(cnf.device)
 
     ds = MOTSynthDS(mode='train', cnf=cnf, debug=True)
     loader = DataLoader(dataset=ds, batch_size=1, num_workers=0, shuffle=False)
+
+    ck_path = cnf.exp_log_path / 'training.ck'
+    if ck_path.exists():
+        ck = torch.load(ck_path, map_location=torch.device('cpu'))
+        print(f'[loading checkpoint \'{ck_path}\']')
+        code_predictor.load_state_dict(ck['model'])
 
     for i, sample in enumerate(loader):
         x_2d_image, heatmaps, y = sample
@@ -288,7 +311,13 @@ def main():
 
         print(f'({i}) Dataset example: x.shape={tuple(x_2d_image.shape)}, y={y}')
 
-        coords2d_pred = utils.local_maxima_3d(hmaps3d=heatmaps.cuda().squeeze(), threshold=0.1, device='cuda')
+        code_pred = code_predictor.forward(x_2d_image.cuda()).unsqueeze(0)
+
+        autoencoder_heatmaps = autoencoder.decode(code_pred).squeeze()
+
+        # utils.visualize_3d_hmap(autoencoder_heatmaps[0], np.array(x_2d_image_real[0]))
+
+        coords2d_pred = utils.local_maxima_3d(hmaps3d=autoencoder_heatmaps, threshold=0.1, device=cnf.device)
 
         # rescaled pseudo-3D coordinates --> [to_3d] --> real 3D coordinates
         coords3d_pred = []
@@ -300,6 +329,7 @@ def main():
 
         # real 3D
         metrics = joint_det_metrics(points_pred=coords3d_pred, points_true=coords3d_true, th=cnf.det_th)
+        print()
 
 
 if __name__ == '__main__':

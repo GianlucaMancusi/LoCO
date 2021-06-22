@@ -5,7 +5,8 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=9
 #SBATCH --gres=gpu:1
-#SBATCH --requeue                   ### On failure, requeue for another try
+#SBATCH --time 8:00:00
+
 
 
 source activate loco_env

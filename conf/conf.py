@@ -10,7 +10,6 @@ import torch
 import yaml
 import os
 from path import Path
-import termcolor
 
 
 def set_seed(seed=None):
@@ -80,7 +79,7 @@ class Conf(object):
         self.q = y.get('Q', 0.31746031746031744)  # type: float # --> quantization factor
         self.lr = y.get('LR', 0.0001)  # type: float # --> learning rate
         self.half_images = bool(y.get('HALF_IMAGES', 0))  # type: bool # --> image shape // 2
-        self.data_augmentation = bool(y.get('DATA_AUGMENTATION', 0))  # type: bool # --> 0: no data aug, 1: use data aug
+        self.data_augmentation = str(y.get('DATA_AUGMENTATION', 'no'))  # type: str # --> 'no': no data aug, 'images': only images, 'all', images and heatmap
         self.epochs = y.get('EPOCHS', 999)  # type: int
         self.det_th = y.get('DET_TH', 0.4)  # type: float # --> detection threshold for test metrics
         self.nms_th = y.get('NMS_TH', 0.1)  # type: float
@@ -92,15 +91,18 @@ class Conf(object):
         self.mot_synth_path = y.get('MOTSYNTH_PATH', '. / motsynth')  # type: str
 
         if y.get('DEVICE', None) is not None:
-            os.environ['CUDA_VISIBLE_DEVICES'] = str(y.get('DEVICE').split(':')[1])
+            # os.environ['CUDA_VISIBLE_DEVICES'] = str(y.get('DEVICE').split(':')[1])
             self.device = 'cuda:0'
         else:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+        available_data_aug = ['no', 'images', 'all']
+        assert self.data_augmentation in available_data_aug, f'the specified DATA_AUGMENTATION parameter "{self.data_augmentation}" does not exist, it must be one of {available_data_aug}'
+
         self.mot_synth_ann_path = Path(self.mot_synth_ann_path)
         self.mot_synth_path = Path(self.mot_synth_path)
-        assert self.mot_synth_ann_path.exists(), 'the specified directory for the MOTSynth annotation dataset does not exists'
-        assert self.mot_synth_path.exists(), 'the specified directory for the MOTSynth-Dataset does not exists'
+        assert self.mot_synth_ann_path.exists(), 'the specified directory for the MOTSynth annotation dataset does not exist'
+        assert self.mot_synth_path.exists(), 'the specified directory for the MOTSynth-Dataset does not exist'
 
     def __str__(self):
         # type: () -> str
@@ -109,12 +111,5 @@ class Conf(object):
             if key in self.keys_to_hide:
                 continue
             value = self.__dict__[key]
-            if type(value) is Path or type(value) is str:
-                value = termcolor.colored(value, 'yellow')
-            else:
-                value = termcolor.colored(f'{value}', 'magenta')
-            out_str += termcolor.colored(f'{key.upper()}', 'blue')
-            out_str += termcolor.colored(': ', 'red')
-            out_str += value
-            out_str += '\n'
+            out_str += f'{key.upper()}: {value}\n'
         return out_str[:-1]
