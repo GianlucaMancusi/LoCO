@@ -14,7 +14,7 @@ cudnn.benchmark = True
 
 
 @click.command()
-@click.option('--exp_name', type=str, default=None)
+@click.option('--exp_name', type=str, default='fix_m_debug')
 @click.option('--seed', type=int, default=None)
 def main(exp_name, seed):
     # type: (str, int) -> None

@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=9
 #SBATCH --gres=gpu:1
-#SBATCH --time 8:00:00
+#SBATCH --time 3:00:00
 
 
 source activate loco_env

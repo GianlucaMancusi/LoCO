@@ -1,1 +1,0 @@
-slurmstepd-aimagelab-srv-10: error: *** JOB 1301714 ON aimagelab-srv-10 CANCELLED AT 2021-05-30T23:56:34 ***

@@ -1,1 +1,0 @@
-slurmstepd-helmut: error: *** JOB 1305352 ON helmut CANCELLED AT 2021-06-07T16:05:15 ***

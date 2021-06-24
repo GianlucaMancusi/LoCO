@@ -92,7 +92,8 @@ class Conf(object):
 
         if y.get('DEVICE', None) is not None:
             # os.environ['CUDA_VISIBLE_DEVICES'] = str(y.get('DEVICE').split(':')[1])
-            self.device = 'cuda:0'
+            self.device = 'cuda'
+            pass
         else:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

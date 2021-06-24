@@ -1,1 +1,0 @@
-slurmstepd-pippobaudo: error: *** JOB 1301651 ON pippobaudo CANCELLED AT 2021-05-30T23:56:25 ***

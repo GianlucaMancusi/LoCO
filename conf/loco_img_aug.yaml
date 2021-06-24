@@ -11,7 +11,7 @@ DET_TH: 0.4
 NMS_TH: 0.1
 N_WORKERS: 2
 BATCH_SIZE: 1
-DEVICE: 'cuda:0'
+DEVICE: 'cuda'
 EPOCH_LEN: 4096
 TEST_SET_LEN: 128
 MOTSYNTH_ANN_PATH: '/nas/softechict-nas-3/matteo/Datasets/MOTSynth_clean_2/'

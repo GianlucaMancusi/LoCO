@@ -81,6 +81,49 @@ def local_maxima_3d(hmaps3d, threshold, device='cuda', ret_confs=False):
         return peaks
 
 
+def get_3d_hmap_image(cnf, hmap, image, coords2d, normalize=False):
+    """
+    A 2d image that shows the depth in a gradient color
+    :param hmap: 3D heatmap with values in [0,1] and shape (D, H, W)
+    :param image: 2d image (3, H, W)
+    """
+    import cv2
+    from colour import Color
+
+    scale_to = (320, 180)
+    image_weight = .8
+    if coords2d is None:
+        coords2d = []
+        image_weight = .5
+
+    if not (type(hmap) is np.ndarray):
+        try:
+            hmap = hmap.cpu().numpy()
+        except:
+            hmap = hmap.detach().cpu().numpy()
+
+    hmap[hmap < 0] = 0
+    hmap[hmap > 1] = 1
+    if normalize:
+        hmap = hmap / hmap.max()
+    hmap = (hmap * 255).astype(np.uint8)
+    collpsed_hmap_in_2d = np.max(hmap, axis=(0, 1))
+    collpsed_hmap_in_2d = cv2.applyColorMap(collpsed_hmap_in_2d, colormap=cv2.COLORMAP_JET)
+    image = cv2.resize(image, scale_to)
+    collpsed_hmap_in_2d = cv2.resize(collpsed_hmap_in_2d, scale_to, interpolation=cv2.INTER_NEAREST)
+    final_image = cv2.addWeighted(collpsed_hmap_in_2d, (1 - image_weight), image, image_weight, 0.0)
+
+    # distance representation by using dots:
+    colors = list(Color("red").range_to(Color("yellow"), hmap.shape[1]//2))
+    colors = colors + list(Color("yellow").range_to(Color("green"), hmap.shape[1]//2))
+    for _, d, y, x in coords2d:
+        y_ratio, x_ratio = scale_to[1] / cnf.hmap_h, scale_to[0] / cnf.hmap_w
+        color = [int(c * 255) for c in colors[d].rgb]
+        final_image = cv2.drawMarker(final_image, (int(x * x_ratio), int(y * y_ratio)), (color[2], color[1], color[0]),
+                                     markerType=cv2.MARKER_STAR, markerSize=2, thickness=1, line_type=cv2.LINE_AA)
+    return final_image
+
+
 def visualize_3d_hmap(hmap, image=None):
     # type: (Union[np.ndarray, torch.Tensor]) -> None
     """
@@ -97,7 +140,7 @@ def visualize_3d_hmap(hmap, image=None):
 
     hmap[hmap < 0] = 0
     hmap[hmap > 1] = 1
-    #hmap = hmap / hmap.max()
+    # hmap = hmap / hmap.max()
     hmap = (hmap * 255).astype(np.uint8)
     for d, x in enumerate(hmap):
         x = cv2.applyColorMap(x, colormap=cv2.COLORMAP_JET)

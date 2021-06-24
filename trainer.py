@@ -9,6 +9,7 @@ from time import time
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
+import torchvision as tv
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
@@ -19,6 +20,8 @@ from dataset.mot_synth_ds import MOTSynthDS
 from models import Autoencoder
 from models import CodePredictor
 from test_metrics import joint_det_metrics
+
+import cv2
 
 
 class Trainer(object):
@@ -150,8 +153,10 @@ class Trainer(object):
 
         test_losses = []
 
+        test_results = {'ground_truth': [], 'prediction': [], 'ground_truth_depth': [], 'prediction_depth': []}
+
         for step, sample in enumerate(self.test_loader):
-            x, heatmap, coords3d_true, fx, fy, cx, cy = sample
+            x, heatmap, coords3d_true, coords2d_true, fx, fy, cx, cy, original_image = sample
 
             x, heatmap = x.to(self.cnf.device), heatmap.to(self.cnf.device)
             fx, fy, cx, cy = fx.item(), fy.item(), cx.item(), cy.item()
@@ -188,6 +193,25 @@ class Trainer(object):
             test_res.append(re)
             test_f1s.append(f1)
 
+            # get images to print on tensorboard
+            original_image = original_image[0].numpy()
+            if step in list(range(0, self.cnf.test_set_len, self.cnf.test_set_len // 8)):
+                ground_truth_image = utils.get_3d_hmap_image(cnf=self.cnf, hmap=heatmap[0], image=original_image,
+                                                             coords2d=None, normalize=False)
+                pred_image = utils.get_3d_hmap_image(cnf=self.cnf, hmap=hmap_pred, image=original_image, coords2d=None,
+                                                     normalize=False)
+
+                ground_truth_depth = utils.get_3d_hmap_image(cnf=self.cnf, hmap=heatmap[0], image=original_image,
+                                                             coords2d=coords2d_true, normalize=False)
+                pred_image_depth = utils.get_3d_hmap_image(cnf=self.cnf, hmap=hmap_pred, image=original_image,
+                                                           coords2d=coords2d_pred, normalize=True)
+
+                test_results['ground_truth'].append(ground_truth_image.transpose(2, 0, 1))
+                test_results['prediction'].append(pred_image.transpose(2, 0, 1))
+                test_results['ground_truth_depth'].append(ground_truth_depth.transpose(2, 0, 1))
+                test_results['prediction_depth'].append(pred_image_depth.transpose(2, 0, 1))
+            # ###################################################### #
+
         # log average loss on test set
         mean_test_pr = float(np.mean(test_prs))
         mean_test_re = float(np.mean(test_res))
@@ -210,6 +234,14 @@ class Trainer(object):
         self.sw.add_scalar(tag='test/precision', scalar_value=mean_test_pr, global_step=self.epoch)
         self.sw.add_scalar(tag='test/recall', scalar_value=mean_test_re, global_step=self.epoch)
         self.sw.add_scalar(tag='test/f1', scalar_value=mean_test_f1, global_step=self.epoch)
+
+        # print images for this test
+        grid = torch.cat([torch.Tensor(test_results['ground_truth']),
+                          torch.Tensor(test_results['prediction']),
+                          torch.Tensor(test_results['ground_truth_depth']),
+                          torch.Tensor(test_results['prediction_depth'])], dim=0)
+        grid = tv.utils.make_grid(grid, nrow=8)
+        self.sw.add_image(tag=f'Visual_Predictions', img_tensor=torch.Tensor(grid), global_step=self.epoch)
 
         # save best model
         if self.best_test_f1 is None or mean_test_f1 >= self.best_test_f1:

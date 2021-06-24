@@ -113,11 +113,12 @@ class MOTSynthDS(Dataset):
         anns = self.mots_ds.loadAnns(ann_ids)
 
         augmentation = self.cnf.data_augmentation if self.mode == 'train' else 'no'
-        x_heatmap, aug_info, y = self.generate_3d_heatmap(anns, augmentation=augmentation)
+        x_heatmap, aug_info, y_coords3d, y_coords2d = self.generate_3d_heatmap(anns, augmentation=augmentation)
 
         x_image = self.get_frame(file_path=img['file_name'])
 
         x_image = np.array(x_image)
+        original_image = np.copy(x_image)
 
         if augmentation in ('images', 'all'):
             img_aug_seq = iaa.Sequential([
@@ -151,22 +152,19 @@ class MOTSynthDS(Dataset):
                                     translate_px={'x': int(round(aug_offset_w)), 'y': int(round(aug_offset_h))})
             x_image = aug_affine(image=x_image, return_batch=False)
 
-        x_real_image = x_image.copy()
-
-        #utils.visualize_3d_hmap(x_heatmap[0], np.array(x_image))     # TODO rimuovere
-        #plt.imsave(f'out/imgs/img_aug{i}.jpg', x_image)
+        # utils.visualize_3d_hmap(x_heatmap[0], np.array(x_image))     # TODO rimuovere
+        # plt.imsave(f'out/imgs/img_aug{i}.jpg', x_image)
         # x_image = torch.from_numpy(x_image).type(torch.FloatTensor).permute(2, 0, 1)
         x_image = transforms.ToTensor()(x_image)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
 
-
         if self.mode == 'train':
-            return x_image, x_heatmap, y
+            return x_image, x_heatmap, y_coords3d
         elif self.mode in ('val', 'test'):
-            return (x_image, x_heatmap, y, *CAMERA_PARAMS)
+            return (x_image, x_heatmap, y_coords3d, y_coords2d, *CAMERA_PARAMS, original_image)
 
     def generate_3d_heatmap(self, anns, augmentation):
-        # type: (List[dict], bool) -> Tuple[Tensor, Tuple[float, float, float], Any]
+        # type: (List[dict], str) -> Tuple[Tensor, Tuple[float, float, float], Any, Any]
         # augmentation initialization (rescale + crop)
         h, w, d = self.cnf.hmap_h, self.cnf.hmap_w, self.cnf.hmap_d
 
@@ -177,7 +175,8 @@ class MOTSynthDS(Dataset):
         aug_offset_w = aug_w * (w * aug_scale - w)
 
         all_hmaps = []
-        y = []
+        y_coords3d = []
+        y_coords2d = []
         for jtype in USEFUL_JOINTS:
 
             # empty hmap
@@ -201,7 +200,6 @@ class MOTSynthDS(Dataset):
                     joint['x2d'] = joint['x2d'] * aug_scale - aug_offset_w
                     joint['y2d'] = joint['y2d'] * aug_scale - aug_offset_h
                     cam_dist = cam_dist / aug_scale
-
 
                 center = [
                     int(round(joint['x2d'])),
@@ -244,11 +242,16 @@ class MOTSynthDS(Dataset):
                         self.gaussian_patch[gza:gzb + 1, gya:gyb + 1, gxa:gxb + 1].unsqueeze(0)
                     ])), 0)[0]
 
-                y.append([USEFUL_JOINTS.index(jtype)] + [joint['x3d'], joint['y3d'], joint['z3d']])
+                y_coords3d.append([USEFUL_JOINTS.index(jtype)] + [joint['x3d'], joint['y3d'], joint['z3d']])
+                y_coords2d.append([USEFUL_JOINTS.index(jtype)] + [
+                    int(round(cam_dist)),
+                    int(round(joint['y2d'])),
+                    int(round(joint['x2d'])),
+                ])
             all_hmaps.append(x)
-        y = json.dumps(y)
+        y_coords3d = json.dumps(y_coords3d)
         x = torch.cat(tuple([h.unsqueeze(0) for h in all_hmaps]))
-        return x, (aug_scale, aug_h, aug_w), y
+        return x, (aug_scale, aug_h, aug_w), y_coords3d, y_coords2d
 
     def get_frame(self, file_path):
         # read input frame
