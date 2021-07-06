@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from PIL.Image import Image
 from path import Path
+import cv2
 
 MAX_LS = np.array([0.27, 0.41, 0.67, 0.93, 0.41, 0.67, 0.92, 0.88, 1.28, 1.69, 0.88, 1.29, 1.70])
 
@@ -81,16 +82,16 @@ def local_maxima_3d(hmaps3d, threshold, device='cuda', ret_confs=False):
         return peaks
 
 
-def get_3d_hmap_image(cnf, hmap, image, coords2d, normalize=False):
+def get_3d_hmap_image(cnf, hmap, image, coords2d, normalize=False, scale_to=None):
     """
     A 2d image that shows the depth in a gradient color
     :param hmap: 3D heatmap with values in [0,1] and shape (D, H, W)
     :param image: 2d image (3, H, W)
     """
-    import cv2
     from colour import Color
 
-    scale_to = (320, 180)
+    if scale_to is None:
+        scale_to = (320, 180)
     image_weight = .8
     if coords2d is None:
         coords2d = []
@@ -114,8 +115,10 @@ def get_3d_hmap_image(cnf, hmap, image, coords2d, normalize=False):
     final_image = cv2.addWeighted(collpsed_hmap_in_2d, (1 - image_weight), image, image_weight, 0.0)
 
     # distance representation by using dots:
-    colors = list(Color("red").range_to(Color("yellow"), hmap.shape[1]//2))
-    colors = colors + list(Color("yellow").range_to(Color("green"), hmap.shape[1]//2))
+    colors = list(Color("red").range_to(Color("yellow"), hmap.shape[1] // 4))
+    colors = colors + list(Color("yellow").range_to(Color("green"), hmap.shape[1] // 4))
+    colors = colors + list(Color("green").range_to(Color("blue"), hmap.shape[1] // 4))
+    colors = colors + list(Color("blue").range_to(Color("magenta"), hmap.shape[1] // 4))
     for _, d, y, x in coords2d:
         y_ratio, x_ratio = scale_to[1] / cnf.hmap_h, scale_to[0] / cnf.hmap_w
         color = [int(c * 255) for c in colors[d].rgb]
@@ -124,13 +127,20 @@ def get_3d_hmap_image(cnf, hmap, image, coords2d, normalize=False):
     return final_image
 
 
+def draw_bboxes(image, bboxes):
+    for bbox in bboxes:
+        image = cv2.rectangle(image, (int(bbox[0]), int(bbox[1])),
+                              (int(bbox[0]) + int(bbox[2]), int(bbox[1]) + int(bbox[3])), color=(255, 0, 0),
+                              thickness=2)
+    return image
+
+
 def visualize_3d_hmap(hmap, image=None):
     # type: (Union[np.ndarray, torch.Tensor]) -> None
     """
     Interactive visualization of 3D heatmaps.
     :param hmap: 3D heatmap with values in [0,1] and shape (D, H, W)
     """
-    import cv2
 
     if not (type(hmap) is np.ndarray):
         try:
@@ -217,7 +227,7 @@ def rescale_to_real(x2d, y2d, cam_dist, q):
 def to3d(x2d, y2d, cam_dist, fx, fy, cx, cy):
     # type: (int, int, float, float, float, float, float) -> Tuple[float, float, float]
     """
-    Converts a 2D point on the image plane into a 3D point in  in the standard
+    Converts a 2D point on the image plane into a 3D point in the standard
     coordinate system using the intrinsic camera parameters.
 
     :param x2d: 2D x coordinate [px]
@@ -240,6 +250,50 @@ def to3d(x2d, y2d, cam_dist, fx, fy, cx, cy):
     z3d = -(fx * fy * cam_dist) / k
 
     return x3d, y3d, z3d
+
+
+def to2d(points_nx3, fx, fy, cx, cy):
+    # type: (int, int, float, float, float, float, float) -> Tuple[float, float, float]
+    """
+    Converts a 3D point on the image plane into a 2D point in the standard
+    coordinate system using the intrinsic camera parameters.
+
+    :param points_nx3: 3D [(x,y,z),...] coordinates
+    :param fx: x component of the focal len
+    :param fy: y component of the focal len
+    :param cx: x component of the central point
+    :param cy: y component of the central point
+    :return: 2D coordinates
+    """
+
+    points_2d, _ = cv2.projectPoints(np.array(points_nx3), (0, 0, 0), (0, 0, 0), np.array([[fx, 0, cx],
+                                                                                           [0, fy, cy],
+                                                                                           [0, 0, 1]],
+                                                                                          dtype=np.float32),
+                                     np.array([]))
+    return np.squeeze(points_2d, axis=1)
+
+
+def to2d_by_def(points_nx3, fx, fy, cx, cy):
+    # type: (int, int, float, float, float, float, float) -> Tuple[float, float, float]
+    """
+    Converts a 3D point on the image plane into a 2D point in the standard
+    coordinate system using the intrinsic camera parameters.
+
+    :param points_nx3: 3D [(x,y,z),...] coordinates
+    :param fx: x component of the focal len
+    :param fy: y component of the focal len
+    :param cx: x component of the central point
+    :param cy: y component of the central point
+    :return: 2D coordinates
+    """
+    points_2d = []
+    for point in points_nx3:
+        x3d, y3d, z3d = point
+        x2d = fx * x3d / z3d + cx
+        y2d = fy * y3d / z3d + cy
+        points_2d.append([x2d, y2d])
+    return points_2d
 
 
 def normalize_rr_pose(rr_pose, max_ls=MAX_LS):

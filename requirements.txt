@@ -13,3 +13,7 @@ opencv_python>=3.4
 pycocotools
 imagecorruptions
 colour
+munkres
+scipy==1.4.1
+scikit_image==0.16.2
+pandas

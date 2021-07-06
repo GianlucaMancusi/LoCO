@@ -89,6 +89,8 @@ class Conf(object):
         self.test_set_len = y.get('TEST_SET_LEN', 128)  # type: int
         self.mot_synth_ann_path = y.get('MOTSYNTH_ANN_PATH', '. / motsynth')  # type: str
         self.mot_synth_path = y.get('MOTSYNTH_PATH', '. / motsynth')  # type: str
+        self.mot_17_path = y.get('MOT17_PATH', '. /')  # type: str
+        self.mot_17_test_set_len = y.get('MOT17_TEST_SET_LEN', 512)  # type: int
 
         if y.get('DEVICE', None) is not None:
             # os.environ['CUDA_VISIBLE_DEVICES'] = str(y.get('DEVICE').split(':')[1])
@@ -104,6 +106,9 @@ class Conf(object):
         self.mot_synth_path = Path(self.mot_synth_path)
         assert self.mot_synth_ann_path.exists(), 'the specified directory for the MOTSynth annotation dataset does not exist'
         assert self.mot_synth_path.exists(), 'the specified directory for the MOTSynth-Dataset does not exist'
+
+        self.mot_17_path = Path(self.mot_17_path)
+        assert self.mot_17_path.exists(), 'the specified directory for the MOT17-Dataset does not exist'
 
     def __str__(self):
         # type: () -> str

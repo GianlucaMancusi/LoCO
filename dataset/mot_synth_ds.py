@@ -104,7 +104,6 @@ class MOTSynthDS(Dataset):
 
     def __getitem__(self, i):
         # type: (int) -> Tuple[torch.Tensor, torch.Tensor]
-
         # select sequence name and frame number
         img = self.mots_ds.loadImgs(self.imgIds[i])[0]
 
@@ -158,6 +157,7 @@ class MOTSynthDS(Dataset):
         x_image = transforms.ToTensor()(x_image)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
 
+
         if self.mode == 'train':
             return x_image, x_heatmap, y_coords3d
         elif self.mode in ('val', 'test'):
@@ -166,6 +166,7 @@ class MOTSynthDS(Dataset):
     def generate_3d_heatmap(self, anns, augmentation):
         # type: (List[dict], str) -> Tuple[Tensor, Tuple[float, float, float], Any, Any]
         # augmentation initialization (rescale + crop)
+
         h, w, d = self.cnf.hmap_h, self.cnf.hmap_w, self.cnf.hmap_d
 
         aug_scale = np.random.uniform(0.5, 2) if augmentation == 'all' else 1
@@ -250,7 +251,9 @@ class MOTSynthDS(Dataset):
                 ])
             all_hmaps.append(x)
         y_coords3d = json.dumps(y_coords3d)
+        y_coords2d = json.dumps(y_coords2d)
         x = torch.cat(tuple([h.unsqueeze(0) for h in all_hmaps]))
+
         return x, (aug_scale, aug_h, aug_w), y_coords3d, y_coords2d
 
     def get_frame(self, file_path):
@@ -286,7 +289,7 @@ def main():
     from test_metrics import joint_det_metrics
     from models import CodePredictor
 
-    cnf = Conf(exp_name='loco_aug')
+    cnf = Conf(exp_name='fix_m_debug')
     cnf.data_augmentation = True
 
     # init volumetric heatmap autoencoder
