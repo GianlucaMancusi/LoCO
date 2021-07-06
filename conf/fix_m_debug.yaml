@@ -19,4 +19,4 @@ MOTSYNTH_ANN_PATH: 'Z:/Datasets/MOTSynth_clean_2' #'/nas/softechict-nas-3/matteo
 MOTSYNTH_PATH: 'Z:/Datasets/MOTSynth' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth/'
 
 MOT17_PATH: 'Z:/Datasets/MOTChallenge'
-MOT17_TEST_SET_LEN: 14
+MOT17_TEST_SET_LEN: 8

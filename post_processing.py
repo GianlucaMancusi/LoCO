@@ -128,7 +128,7 @@ def filter_joints(joints, duplicate_th):
                 pass
 
 
-def refine_pose(pose, refiner):
+def refine_pose(pose, refiner, device='cpu'):
     # type: (Sequence[Sequence[float]], Refiner) -> Optional[List[np.ndarray]]
     """
     :param pose: list of joints where each joint is in the form [jtype, x3d, y3d, z3d]
@@ -157,10 +157,10 @@ def refine_pose(pose, refiner):
     for jtype in range(1, 14):
         if not pose[jtype].visible:
             rr_pose_pred[jtype - 1] = np.array([-1, -1, -1])
-    rr_pose_pred = torch.tensor(rr_pose_pred).unsqueeze(0).float()
+    rr_pose_pred = torch.tensor(rr_pose_pred).unsqueeze(0).float().to(device)
 
     # refine fountain with `refiner` model
-    refined_rr_pose_pred = refiner.forward(rr_pose_pred).numpy().squeeze()
+    refined_rr_pose_pred = refiner.forward(rr_pose_pred).cpu().numpy().squeeze()
 
     if pose[0].type == 0:
         refined_pose_pred = Pose.from_rr_pose(refined_rr_pose_pred, head_pos3d=pose[0].pos3d, max_ls=MAX_LS)

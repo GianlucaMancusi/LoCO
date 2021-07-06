@@ -128,6 +128,7 @@ def get_3d_hmap_image(cnf, hmap, image, coords2d, normalize=False, scale_to=None
 
 
 def draw_bboxes(image, bboxes):
+    image = image.copy()
     for bbox in bboxes:
         image = cv2.rectangle(image, (int(bbox[0]), int(bbox[1])),
                               (int(bbox[0]) + int(bbox[2]), int(bbox[1]) + int(bbox[3])), color=(255, 0, 0),

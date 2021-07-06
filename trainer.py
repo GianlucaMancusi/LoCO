@@ -8,6 +8,7 @@ from time import time
 
 import numpy as np
 import torch
+import cv2
 from tensorboardX import SummaryWriter
 import torchvision as tv
 from torch import nn
@@ -311,14 +312,14 @@ class Trainer(object):
             # 3D poses -> [refiner] -> refined 3D poses
             refined_poses = []
             for _pose in poses:
-                refined_pose = refine_pose(pose=_pose, refiner=self.refiner)
+                refined_pose = refine_pose(pose=_pose, refiner=self.refiner, device=self.cnf.device)
                 if refined_pose is not None:
                     refined_poses.append(refined_pose)
 
             # Get 2d poses
             refined_2d_poses = []
             for pose_3d in refined_poses:
-                refined_2d_poses.append(utils.to2d_by_def(pose_3d, fx=1158, fy=1158, cx=960, cy=540))
+                refined_2d_poses.append(utils.to2d(pose_3d, fx=1158, fy=1158, cx=960, cy=540))
 
             # Get bounding boxes
             bboxes_pred = []
@@ -331,14 +332,17 @@ class Trainer(object):
                 # save CSV bbox information
                 self.test_set_mot17.add_to_mot17_csv(seq_num, frame_id,
                                                      bb_info={
-                                         'bb_id': j,
-                                         'bb_left': min_x, 'bb_top': min_y,
-                                         'bb_width': max_x - min_x, 'bb_height': max_y - min_y
-                                     })
+                                                         'bb_id': j,
+                                                         'bb_left': min_x, 'bb_top': min_y,
+                                                         'bb_width': max_x - min_x, 'bb_height': max_y - min_y
+                                                     })
 
             if step in list(range(0, self.cnf.mot_17_test_set_len, self.cnf.mot_17_test_set_len // 8)):
+                bboxes_true = [[el['x'], el['y'], el['w'], el['h']] for el in bboxes_true]
                 ground_image = utils.draw_bboxes(x_2d_original_image[0].numpy(), bboxes_true)
                 pred_image = utils.draw_bboxes(x_2d_original_image[0].numpy(), bboxes_pred)
+                ground_image = cv2.resize(ground_image, (1280, 720))
+                pred_image = cv2.resize(pred_image, (1280, 720))
                 test_results['ground_truth'].append(ground_image.transpose(2, 0, 1))
                 test_results['prediction'].append(pred_image.transpose(2, 0, 1))
 
