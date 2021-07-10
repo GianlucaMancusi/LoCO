@@ -42,40 +42,41 @@ import trackeval  # noqa: E402
 
 class MOTChallengeTrackEval():
 
-    def __init__(self):
+    def __init__(self, exp_name='default'):
+        self.exp_name = exp_name
         freeze_support()
 
         # Command line interface:
         default_eval_config = trackeval.Evaluator.get_default_eval_config()
         default_eval_config['DISPLAY_LESS_PROGRESS'] = False
-        default_dataset_config = trackeval.datasets.MotChallenge2DBox.get_default_dataset_config()
+        default_dataset_config = trackeval.datasets.MotChallenge2DBox.get_default_dataset_config(self.exp_name)
         default_metrics_config = {'METRICS': ['HOTA', 'CLEAR', 'Identity'], 'THRESHOLD': 0.5}
         config = {**default_eval_config, **default_dataset_config, **default_metrics_config}  # Merge default configs
-        parser = argparse.ArgumentParser()
-        for setting in config.keys():
-            if type(config[setting]) == list or type(config[setting]) == type(None):
-                parser.add_argument("--" + setting, nargs='+')
-            else:
-                parser.add_argument("--" + setting)
-        args = parser.parse_args().__dict__
-        for setting in args.keys():
-            if args[setting] is not None:
-                if type(config[setting]) == type(True):
-                    if args[setting] == 'True':
-                        x = True
-                    elif args[setting] == 'False':
-                        x = False
-                    else:
-                        raise Exception('Command line parameter ' + setting + 'must be True or False')
-                elif type(config[setting]) == type(1):
-                    x = int(args[setting])
-                elif type(args[setting]) == type(None):
-                    x = None
-                elif setting == 'SEQ_INFO':
-                    x = dict(zip(args[setting], [None] * len(args[setting])))
-                else:
-                    x = args[setting]
-                config[setting] = x
+        # parser = argparse.ArgumentParser()
+        # for setting in config.keys():
+        #     if type(config[setting]) == list or type(config[setting]) == type(None):
+        #         parser.add_argument("--" + setting, nargs='+')
+        #     else:
+        #         parser.add_argument("--" + setting)
+        # args = parser.parse_args().__dict__
+        # for setting in args.keys():
+        #     if args[setting] is not None:
+        #         if type(config[setting]) == type(True):
+        #             if args[setting] == 'True':
+        #                 x = True
+        #             elif args[setting] == 'False':
+        #                 x = False
+        #             else:
+        #                 raise Exception('Command line parameter ' + setting + 'must be True or False')
+        #         elif type(config[setting]) == type(1):
+        #             x = int(args[setting])
+        #         elif type(args[setting]) == type(None):
+        #             x = None
+        #         elif setting == 'SEQ_INFO':
+        #             x = dict(zip(args[setting], [None] * len(args[setting])))
+        #         else:
+        #             x = args[setting]
+        #         config[setting] = x
         self.eval_config = {k: v for k, v in config.items() if k in default_eval_config.keys()}
         self.dataset_config = {k: v for k, v in config.items() if k in default_dataset_config.keys()}
         self.metrics_config = {k: v for k, v in config.items() if k in default_metrics_config.keys()}
@@ -83,7 +84,7 @@ class MOTChallengeTrackEval():
     def run_mot_challenge(self):
         # Run code
         evaluator = trackeval.Evaluator(self.eval_config)
-        dataset_list = [trackeval.datasets.MotChallenge2DBox(self.dataset_config)]
+        dataset_list = [trackeval.datasets.MotChallenge2DBox(self.dataset_config, exp_name=self.exp_name)]
         metrics_list = []
         for metric in [trackeval.metrics.HOTA, trackeval.metrics.CLEAR, trackeval.metrics.Identity,
                        trackeval.metrics.VACE]:

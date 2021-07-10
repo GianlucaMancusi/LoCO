@@ -78,7 +78,7 @@ def main():
     batch_size = 1
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    half_images = False
+    half_images = True
 
     model = CodePredictor(half_images=half_images).to(device)
     print(model)

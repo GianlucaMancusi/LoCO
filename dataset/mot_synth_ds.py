@@ -14,6 +14,9 @@ from torchvision import transforms
 import imgaug.augmenters as iaa
 
 import matplotlib.pyplot as plt
+from models import CodePredictor
+from models import Refiner
+from post_processing import joint_association, filter_joints, refine_pose
 
 import utils
 from conf import Conf
@@ -70,7 +73,7 @@ class MOTSynthDS(Dataset):
 
         if self.mode == 'train':
             if is_windows:
-                path_to_anns = path.join(self.cnf.mot_synth_ann_path, 'annotations', '000.json')
+                path_to_anns = path.join(self.cnf.mot_synth_ann_path, 'annotations', '006.json')
             else:
                 path_to_anns = path.join(self.cnf.mot_synth_ann_path, 'annotation_groups',
                                          'MOTSynth_annotations_10_train.json')
@@ -157,7 +160,6 @@ class MOTSynthDS(Dataset):
         x_image = transforms.ToTensor()(x_image)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)
 
-
         if self.mode == 'train':
             return x_image, x_heatmap, y_coords3d
         elif self.mode in ('val', 'test'):
@@ -208,8 +210,14 @@ class MOTSynthDS(Dataset):
                     int(round(cam_dist))
                 ]
 
+
                 # ignore the point if due to augmentation the point goes out of the screen
                 if min(center) < 0 or joint['x2d'] > w or joint['y2d'] > h or cam_dist > d:
+                    continue
+
+                # ignore the joint if the distance is such that the height of the person is less then about 25 pixel
+                z3d_augmented = joint['z3d'] / aug_scale
+                if z3d_augmented >= self.cnf.max_distance:
                     continue
 
                 center = center[::-1]
@@ -267,8 +275,13 @@ class MOTSynthDS(Dataset):
     def get_joints_from_anns(anns, jtype):
         joints = []
         for ann in anns:
-            n_visible_joints = np.array([_ == 2 for _ in ann['keypoints'][2::3]]).sum()
-            if n_visible_joints > 22 * 0.25:  # TODO DEBUG VISIBILITY
+            n_visible_joints = np.array([visibility == 2 for visibility in ann['keypoints'][2::3]]).sum()
+            # max_y, min_y = max(ann['keypoints'][1::3]), min(ann['keypoints'][1::3])
+            # person_height = max_y - min_y
+            # z = np.array(ann['keypoints_3d'][2::4]).mean()
+            # if 48 < person_height < 52 and jtype == 2:
+            #     print(f"person height: {person_height}, z: {z}")
+            if n_visible_joints > 22 * 0.25:
                 joints.append({
                     'x2d': ann['keypoints'][3 * jtype],
                     'y2d': ann['keypoints'][3 * jtype + 1],
@@ -289,8 +302,7 @@ def main():
     from test_metrics import joint_det_metrics
     from models import CodePredictor
 
-    cnf = Conf(exp_name='fix_m_debug')
-    cnf.data_augmentation = True
+    cnf = Conf(exp_name='loco_debug')
 
     # init volumetric heatmap autoencoder
     autoencoder = Autoencoder()
@@ -298,8 +310,14 @@ def main():
     autoencoder.requires_grad(False)
     autoencoder = autoencoder.to(cnf.device)
 
-    code_predictor = CodePredictor(half_images=False)
+    code_predictor = CodePredictor(half_images=cnf.half_images)
     code_predictor = code_predictor.to(cnf.device)
+
+    # init Hole Filler
+    refiner = Refiner(pretrained=True)
+    # refiner.to(cnf.device)
+    refiner.eval()
+    refiner.requires_grad(False)
 
     ds = MOTSynthDS(mode='train', cnf=cnf, debug=True)
     loader = DataLoader(dataset=ds, batch_size=1, num_workers=0, shuffle=False)

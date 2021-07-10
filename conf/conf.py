@@ -76,9 +76,11 @@ class Conf(object):
         self.hmap_h = y.get('H_3D', 136)  # type: float # --> VHA Heatmap dimentions
         self.hmap_w = y.get('W_3D', 240)  # type: float # --> VHA Heatmap dimentions
         self.hmap_d = y.get('D_3D', 316)  # type: float # --> VHA Heatmap dimentions
+        self.max_distance = y.get('MAX_DISTANCE', 80)  # type: float # --> neglet people that are farther
         self.q = y.get('Q', 0.31746031746031744)  # type: float # --> quantization factor
         self.lr = y.get('LR', 0.0001)  # type: float # --> learning rate
         self.half_images = bool(y.get('HALF_IMAGES', 0))  # type: bool # --> image shape // 2
+        self.debug = bool(y.get('DEBUG', 0))  # type: bool # --> debug mode if 1 (True)
         self.data_augmentation = str(y.get('DATA_AUGMENTATION', 'no'))  # type: str # --> 'no': no data aug, 'images': only images, 'all', images and heatmap
         self.epochs = y.get('EPOCHS', 999)  # type: int
         self.det_th = y.get('DET_TH', 0.4)  # type: float # --> detection threshold for test metrics

@@ -1,0 +1,25 @@
+# default
+H_3D: 136
+W_3D: 240
+D_3D: 316
+HALF_IMAGES: 1
+MAX_DISTANCE: 37.1 # 80 if half_images == 0 else 37.1
+DATA_AUGMENTATION: 'all'
+Q: 0.31746031746031744
+LR: 0.0001
+EPOCHS: 999
+DET_TH: 0.4
+NMS_TH: 0.1
+N_WORKERS: 2
+BATCH_SIZE: 1
+DEVICE: 'cuda'
+EPOCH_LEN: 1
+TEST_SET_LEN: 128
+
+MOTSYNTH_ANN_PATH: 'Z:/Datasets/MOTSynth_clean_2' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth_clean_2/'
+MOTSYNTH_PATH: 'Z:/Datasets/MOTSynth' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth/'
+
+MOT17_PATH: 'Z:/Datasets/MOTChallenge' #'/nas/softechict-nas-3/matteo/Datasets/MOTChallenge'
+MOT17_TEST_SET_LEN: 8
+
+DEBUG: 1

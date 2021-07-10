@@ -24,6 +24,8 @@ from models import CodePredictor
 from models import Refiner
 from test_metrics import joint_det_metrics
 
+import matplotlib.pyplot as plt
+
 from post_processing import joint_association, filter_joints, refine_pose
 
 
@@ -73,9 +75,6 @@ class Trainer(object):
 
         # possibly load checkpoint
         self.load_ck()
-
-    def __del__(self):
-        self.sw.close()
 
     def load_ck(self):
         """
@@ -209,6 +208,7 @@ class Trainer(object):
 
             # get images to print on tensorboard
             original_image = original_image[0].numpy()
+            plt.imsave(f'out/imgs/img_test{step}.jpg', original_image)
             if step in list(range(0, self.cnf.test_set_len, self.cnf.test_set_len // 8)):
                 ground_truth_image = utils.get_3d_hmap_image(cnf=self.cnf, hmap=heatmap[0], image=original_image,
                                                              coords2d=None, normalize=False)
@@ -286,6 +286,7 @@ class Trainer(object):
             img_id = int(img_id[0])
             seq_num = int(str(img_id)[2:4])
             frame_id = int(str(img_id)[4:])
+            self.test_set_mot17.update_computed_seq_frame(seq_num, frame_id)
 
             # image --> [code_predictor] --> code
             code_pred = self.code_predictor.forward(x_2d_image).unsqueeze(0)
@@ -384,6 +385,8 @@ class Trainer(object):
         for _ in range(self.epoch, self.cnf.epochs):
             self.train()
             self.test()
-            self.test_mot17()
+            if self.epoch % 2 == 0 and self.epoch != 0:
+                self.test_mot17()
             self.epoch += 1
-            self.save_ck()
+            if not self.cnf.debug:
+                self.save_ck()

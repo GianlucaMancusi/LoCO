@@ -1,0 +1,126 @@
+MotChallenge2DBox
+SynthDET
+Traceback (most recent call last):
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/eval.py", line 87, in evaluate
+    metric_names)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/eval.py", line 195, in eval_sequence
+    data = dataset.get_preprocessed_seq_data(raw_data, cls)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/datasets/mot_challenge_2d_box.py", line 324, in get_preprocessed_seq_data
+    self._check_unique_ids(raw_data)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/datasets/_base_dataset.py", line 315, in _check_unique_ids
+    raise TrackEvalException(exc_str)
+trackeval.utils.TrackEvalException: Tracker predicts the same ID more than once in a single timestep (seq: MOT17-02-MOTSynth, frame: 1, ids: 0 1 2 3 4 5 6)
+
+
+
+
+
+MotChallenge2DBox
+SynthDET
+Traceback (most recent call last):
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/eval.py", line 87, in evaluate
+    metric_names)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/eval.py", line 195, in eval_sequence
+    data = dataset.get_preprocessed_seq_data(raw_data, cls)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/datasets/mot_challenge_2d_box.py", line 324, in get_preprocessed_seq_data
+    self._check_unique_ids(raw_data)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/datasets/_base_dataset.py", line 315, in _check_unique_ids
+    raise TrackEvalException(exc_str)
+trackeval.utils.TrackEvalException: Tracker predicts the same ID more than once in a single timestep (seq: MOT17-02-MOTSynth, frame: 1, ids: 0 1 2 3 4 5 6 7 8 9 10 11 12 13)
+
+
+
+
+
+MotChallenge2DBox
+SynthDET
+Traceback (most recent call last):
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/eval.py", line 87, in evaluate
+    metric_names)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/eval.py", line 195, in eval_sequence
+    data = dataset.get_preprocessed_seq_data(raw_data, cls)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/datasets/mot_challenge_2d_box.py", line 324, in get_preprocessed_seq_data
+    self._check_unique_ids(raw_data)
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trackeval/datasets/_base_dataset.py", line 315, in _check_unique_ids
+    raise TrackEvalException(exc_str)
+trackeval.utils.TrackEvalException: Tracker predicts the same ID more than once in a single timestep (seq: MOT17-02-MOTSynth, frame: 1, ids: 0 1 2 3 4 5 6)
+
+
+
+
+
+MotChallenge2DBox
+SynthDET
+Traceback (most recent call last):
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\eval.py", line 87, in evaluate
+    metric_names)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\eval.py", line 195, in eval_sequence
+    data = dataset.get_preprocessed_seq_data(raw_data, cls)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\datasets\mot_challenge_2d_box.py", line 324, in get_preprocessed_seq_data
+    self._check_unique_ids(raw_data)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\datasets\_base_dataset.py", line 315, in _check_unique_ids
+    raise TrackEvalException(exc_str)
+trackeval.utils.TrackEvalException: Tracker predicts the same ID more than once in a single timestep (seq: MOT17-02-MOTSynth, frame: 1, ids: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14)
+
+
+
+
+
+MotChallenge2DBox
+SynthDET
+Traceback (most recent call last):
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\eval.py", line 87, in evaluate
+    metric_names)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\eval.py", line 195, in eval_sequence
+    data = dataset.get_preprocessed_seq_data(raw_data, cls)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\datasets\mot_challenge_2d_box.py", line 324, in get_preprocessed_seq_data
+    self._check_unique_ids(raw_data)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\datasets\_base_dataset.py", line 315, in _check_unique_ids
+    raise TrackEvalException(exc_str)
+trackeval.utils.TrackEvalException: Tracker predicts the same ID more than once in a single timestep (seq: MOT17-02-MOTSynth, frame: 1, ids: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14)
+
+
+
+
+
+MotChallenge2DBox
+SynthDET
+Traceback (most recent call last):
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\eval.py", line 87, in evaluate
+    metric_names)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\eval.py", line 195, in eval_sequence
+    data = dataset.get_preprocessed_seq_data(raw_data, cls)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\_timing.py", line 17, in wrap
+    result = f(*args, **kw)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\datasets\mot_challenge_2d_box.py", line 324, in get_preprocessed_seq_data
+    self._check_unique_ids(raw_data)
+  File "Z:\PycharmProjects\gianlu\LoCO\trackeval\datasets\_base_dataset.py", line 315, in _check_unique_ids
+    raise TrackEvalException(exc_str)
+trackeval.utils.TrackEvalException: Tracker predicts the same ID more than once in a single timestep (seq: MOT17-02-MOTSynth, frame: 1, ids: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14)
+
+
+
+
+

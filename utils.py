@@ -253,8 +253,8 @@ def to3d(x2d, y2d, cam_dist, fx, fy, cx, cy):
     return x3d, y3d, z3d
 
 
-def to2d(points_nx3, fx, fy, cx, cy):
-    # type: (int, int, float, float, float, float, float) -> Tuple[float, float, float]
+def to2d(points_nx3, fx, fy, cx, cy, return_z=False):
+    # type: (List[Union[np.ndarray, np.ndarray]], float, float, float, float) -> Union[Any, np.ndarray, np.ndarray]
     """
     Converts a 3D point on the image plane into a 2D point in the standard
     coordinate system using the intrinsic camera parameters.
@@ -272,7 +272,10 @@ def to2d(points_nx3, fx, fy, cx, cy):
                                                                                            [0, 0, 1]],
                                                                                           dtype=np.float32),
                                      np.array([]))
-    return np.squeeze(points_2d, axis=1)
+    if not return_z:
+        return np.squeeze(points_2d, axis=1)
+    else:
+        return np.squeeze(points_2d, axis=1), np.array(points_nx3).transpose(1,0)[2].mean()
 
 
 def to2d_by_def(points_nx3, fx, fy, cx, cy):

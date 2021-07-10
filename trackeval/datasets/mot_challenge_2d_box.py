@@ -13,7 +13,7 @@ class MotChallenge2DBox(_BaseDataset):
     """Dataset class for MOT Challenge 2D bounding box tracking"""
 
     @staticmethod
-    def get_default_dataset_config():
+    def get_default_dataset_config(exp_name):
         """Default class config values"""
         code_path = utils.get_code_path()
         default_config = {
@@ -27,24 +27,25 @@ class MotChallenge2DBox(_BaseDataset):
             'INPUT_AS_ZIP': False,  # Whether tracker input files are zipped
             'PRINT_CONFIG': True,  # Whether to print current config
             'DO_PREPROC': True,  # Whether to perform preprocessing (never done for MOT15)
-            'TRACKER_SUB_FOLDER': 'data',  # Tracker files are in TRACKER_FOLDER/tracker_name/TRACKER_SUB_FOLDER
-            'OUTPUT_SUB_FOLDER': '',  # Output files are saved in OUTPUT_FOLDER/tracker_name/OUTPUT_SUB_FOLDER
+            'TRACKER_SUB_FOLDER': f'{exp_name}',  # Tracker files are in TRACKER_FOLDER/tracker_name/TRACKER_SUB_FOLDER
+            'OUTPUT_SUB_FOLDER': f'{exp_name}',     # Output files are saved in
+                                                    # OUTPUT_FOLDER/tracker_name/OUTPUT_SUB_FOLDER
             'TRACKER_DISPLAY_NAMES': None,  # Names of trackers to display, if None: TRACKERS_TO_EVAL
             'SEQMAP_FOLDER': None,  # Where seqmaps are found (if None, GT_FOLDER/seqmaps)
             'SEQMAP_FILE': None,  # Directly specify seqmap file (if none use seqmap_folder/benchmark-split_to_eval)
             'SEQ_INFO': None,  # If not None, directly specify sequences to eval and their number of timesteps
-            'GT_LOC_FORMAT': '{gt_folder}/{seq}/gt_sub/gt.txt',  # '{gt_folder}/{seq}/gt/gt.txt'
+            'GT_LOC_FORMAT': '{gt_folder}/{seq}/gt_sub_'+str(exp_name)+'/gt.txt',  # '{gt_folder}/{seq}/gt/gt.txt'
             'SKIP_SPLIT_FOL': False,  # If False, data is in GT_FOLDER/BENCHMARK-SPLIT_TO_EVAL/ and in
                                       # TRACKERS_FOLDER/BENCHMARK-SPLIT_TO_EVAL/tracker/
                                       # If True, then the middle 'benchmark-split' folder is skipped for both.
         }
         return default_config
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, exp_name='default'):
         """Initialise dataset, checking that all required files are present"""
         super().__init__()
         # Fill non-given config values with defaults
-        self.config = utils.init_config(config, self.get_default_dataset_config(), self.get_name())
+        self.config = utils.init_config(config, self.get_default_dataset_config(exp_name=exp_name), self.get_name())
 
         self.benchmark = self.config['BENCHMARK']
         gt_set = self.config['BENCHMARK'] + '-' + self.config['SPLIT_TO_EVAL']

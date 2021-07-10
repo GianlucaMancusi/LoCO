@@ -18,5 +18,5 @@ TEST_SET_LEN: 128
 MOTSYNTH_ANN_PATH: '/nas/softechict-nas-3/matteo/Datasets/MOTSynth_clean_2/'
 MOTSYNTH_PATH: '/nas/softechict-nas-3/matteo/Datasets/MOTSynth/'
 
-MOT17_PATH: 'Z:/Datasets/MOTChallenge'
-MOT17_TEST_SET_LEN: 512
+MOT17_PATH: '/nas/softechict-nas-3/matteo/Datasets/MOTChallenge'
+MOT17_TEST_SET_LEN: 128

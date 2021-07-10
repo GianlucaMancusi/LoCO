@@ -16,6 +16,7 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 import run_mot_challenge as MOTChallengeEval
 
+import os, errno
 import utils
 from conf import Conf
 
@@ -42,16 +43,16 @@ class MOT17TestDS(Dataset):
 
         self.catIds = self.mot17_ds.getCatIds(catNms=['person'])
         self.imgIds = self.mot17_ds.getImgIds(catIds=self.catIds)
-        self.imgIds = self.get_ids_loop_by_seq()
+        self.imgIds = self._get_ids_loop_by_seq()
 
-        self.seq_to_frame = self.get_seq_to_frame()
-        self._mot_track_eval = MOTChallengeEval.MOTChallengeTrackEval()
+        self.seq_to_frame = self._get_seq_to_frame()
+        self._mot_track_eval = MOTChallengeEval.MOTChallengeTrackEval(exp_name=self.cnf.exp_name)
 
         self.training_sequences = [2, 4, 5, 9, 10, 11, 13]
-        self.computed_ids = []
+        self.computed_seq_frames = []
         self.tracker_dfs = {seq: [] for seq in self.training_sequences}
         self.gt_dfs = {}
-        self.read_gt_dfs()
+        self._read_gt_dfs()
 
     def __len__(self):
         # type: () -> int
@@ -61,7 +62,6 @@ class MOT17TestDS(Dataset):
         # type: (int) -> Tuple[torch.Tensor, torch.Tensor]
         # select sequence name and frame number
         img = self.mot17_ds.loadImgs(self.imgIds[i])[0]
-        self.computed_ids.append(self.imgIds[i])
 
         # load corresponding data
         ann_ids = self.mot17_ds.getAnnIds(imgIds=img['id'], catIds=self.catIds, iscrowd=None)
@@ -77,7 +77,7 @@ class MOT17TestDS(Dataset):
                     'h': ann['bbox'][3]
                 })
 
-        x_image = self.get_frame(file_path=self.cnf.mot_17_path / img['file_name'])
+        x_image = self._get_frame(file_path=self.cnf.mot_17_path / img['file_name'])
 
         x_image = np.array(x_image)
         x_original_image = x_image.copy()
@@ -88,13 +88,13 @@ class MOT17TestDS(Dataset):
         bboxes = json.dumps(bboxes)
         return x_image, bboxes, x_original_image, img['id']
 
-    def get_frame(self, file_path):
+    def _get_frame(self, file_path):
         # read input frame
         frame_path = self.cnf.mot_synth_path / file_path
         frame = utils.imread(frame_path).convert('RGB')
         return frame
 
-    def get_seq_to_frame(self):
+    def _get_seq_to_frame(self):
         seq_to_frame_dict = {}
         for img_id in self.imgIds:
             seq, frame_id = MOT17TestDS.seq_frame_from_image_id(img_id)
@@ -107,7 +107,7 @@ class MOT17TestDS(Dataset):
         frame_id = int(str(img_id)[4:])
         return seq, frame_id
 
-    def get_ids_loop_by_seq(self):
+    def _get_ids_loop_by_seq(self):
         """
         Re-order the ids array such that the ids are looped over the sequences
         :return:
@@ -134,23 +134,20 @@ class MOT17TestDS(Dataset):
             i += 1
         return result_array
 
-    def read_gt_dfs(self):
+    def _read_gt_dfs(self):
         for i in self.training_sequences:
             file_path = path.join(self._mot_track_eval.dataset_config['GT_FOLDER'], 'MOT17-train',
                                   f'MOT17-{i:02d}-MOTSynth', 'gt', "gt.txt")
             df = pd.read_csv(file_path, header=None)
             self.gt_dfs.update({i: df})
 
-    def add_to_mot17_csv(self, seq_num, frame_id, bb_info):
-        self.tracker_dfs[seq_num].append([frame_id, bb_info['bb_id'],
-                                          bb_info['bb_left'], bb_info['bb_top'],
-                                          bb_info['bb_width'], bb_info['bb_height'],
-                                          -1, -1, -1, -1])
+    def _reset_variables(self):
+        self.computed_seq_frames = []
+        self.tracker_dfs = {seq: [] for seq in self.training_sequences}
 
     def _generate_ground_truth(self):
         seq_row_index_dict = {}
-        for image_id in self.computed_ids:
-            seq, frame_id = MOT17TestDS.seq_frame_from_image_id(image_id)
+        for seq, frame_id in self.computed_seq_frames:
             indexes_to_save = self.gt_dfs[seq].index[self.gt_dfs[seq].iloc[:, 0] == frame_id].tolist()
             seq_row_index_dict.setdefault(seq, []).extend(indexes_to_save)
 
@@ -160,21 +157,35 @@ class MOT17TestDS(Dataset):
             # generate files
             file_path = path.join(self._mot_track_eval.dataset_config['GT_FOLDER'], 'MOT17-train',
                                   f'MOT17-{seq:02d}-MOTSynth',
-                                  'gt_sub', "gt.txt")
+                                  f'gt_sub_{self.cnf.exp_name}', "gt.txt")
             makedirs(path.dirname(file_path), exist_ok=True)
+            print(f"Creating partial ground truth of 128 elements: {file_path}")
             self.gt_dfs[seq].to_csv(file_path, index=False, header=False)
 
-    def _save_mot17_csv(self):
+    def _save_tmp_tracker_csv(self):
         for seq in self.training_sequences:
             seq_df = pd.DataFrame(self.tracker_dfs[seq], columns=np.arange(10))
-            file_path = path.join(self._mot_track_eval.dataset_config['TRACKERS_FOLDER'], 'MOT17-train', 'SynthDET',
-                                  'data', f"MOT17-{seq:02d}-MOTSynth.txt")
+            file_path = path.join(self._mot_track_eval.dataset_config['TRACKERS_FOLDER'], 'MOT17-train', f'SynthDET',
+                                  f'{self.cnf.exp_name}', f"MOT17-{seq:02d}-MOTSynth.txt")
             makedirs(path.dirname(file_path), exist_ok=True)
-            seq_df.to_csv(file_path, header=False, index=False)
+            seq_df.to_csv(file_path, header=False, index=False, mode='w')
+        self._reset_variables()
+
+    def add_to_mot17_csv(self, seq_num, frame_id, bb_info):
+        self.tracker_dfs[seq_num].append([frame_id, bb_info['bb_id'],
+                                          bb_info['bb_left'], bb_info['bb_top'],
+                                          bb_info['bb_width'], bb_info['bb_height'],
+                                          -1, -1, -1, -1])
+
+    def update_computed_seq_frame(self, seq, frame):
+        self.computed_seq_frames.append((seq, frame))
 
     def get_eval_results(self):
-        self._save_mot17_csv()
         self._generate_ground_truth()
+        # save data to the tmp directory to allow the MOT17 script to compute the metrics
+        self._save_tmp_tracker_csv()
+
+        # compute the metrics and output the useful results
         output_res, output_msg = self._mot_track_eval.run_mot_challenge()
         res_HOTA = output_res['MotChallenge2DBox']['SynthDET']['COMBINED_SEQ']['pedestrian']['HOTA']
         return {"re": res_HOTA['DetRe'], "pr": res_HOTA['DetPr'],
@@ -184,7 +195,6 @@ class MOT17TestDS(Dataset):
 def main():
     import utils
     from models import Autoencoder
-    from test_metrics import joint_det_metrics
     from models import CodePredictor
     from models import Refiner
     from post_processing import joint_association, filter_joints, refine_pose
@@ -208,7 +218,7 @@ def main():
     refiner.requires_grad(False)
 
     ds = MOT17TestDS(cnf=cnf)
-    loader = DataLoader(dataset=ds, batch_size=1, num_workers=0, shuffle=False)
+    loader = DataLoader(dataset=ds, batch_size=1, num_workers=1, shuffle=False)
 
     ck_path = cnf.exp_log_path / 'training.ck'
     if ck_path.exists():
@@ -225,6 +235,7 @@ def main():
 
         seq_num = int(str(img_id)[2:4])
         frame_id = int(str(img_id)[4:])
+        ds.update_computed_seq_frame(seq_num, frame_id)
         print(
             f'({i}, seq={seq_num}, frame_id={frame_id}) Dataset example: x.shape={tuple(x_2d_image.shape)}, bboxes_true={bboxes_true}')
 
@@ -264,8 +275,9 @@ def main():
         # Get bounding boxes
         bboxes_pred = []
         for j, pose in enumerate(refined_2d_poses):
-            x_values = np.transpose(np.array(pose), (1, 0))[0]
-            y_values = np.transpose(np.array(pose), (1, 0))[1]
+            pose_transposed = np.transpose(np.array(pose), (1, 0))
+            x_values = pose_transposed[0]
+            y_values = pose_transposed[1]
             max_x, max_y, min_x, min_y = np.max(x_values), np.max(y_values), np.min(x_values), np.min(y_values)
             bboxes_pred.append([min_x, min_y, (max_x - min_x), (max_y - min_y)])
 
