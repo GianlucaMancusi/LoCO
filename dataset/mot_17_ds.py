@@ -15,6 +15,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 import matplotlib.pyplot as plt
 import run_mot_challenge as MOTChallengeEval
+import imgaug.augmenters as iaa
 
 import os, errno
 import utils
@@ -81,6 +82,11 @@ class MOT17TestDS(Dataset):
 
         x_image = np.array(x_image)
         x_original_image = x_image.copy()
+
+        # resize to standard dimensions
+        image_size_transformation = iaa.Resize({"height": 540, "width": 960}) if self.cnf.half_images \
+            else iaa.Resize({"height": 1080, "width": 1920})
+        x_image = image_size_transformation(image=x_image, return_batch=False)
 
         x_image = transforms.ToTensor()(x_image)
         x_image = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(x_image)

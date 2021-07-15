@@ -122,6 +122,11 @@ class MOTSynthDS(Dataset):
         x_image = np.array(x_image)
         original_image = np.copy(x_image)
 
+        # resize to standard dimensions
+        image_size_transformation = iaa.Resize({"height": 540, "width": 960}) if self.cnf.half_images \
+            else iaa.Resize({"height": 1080, "width": 1920})
+        x_image = image_size_transformation(image=x_image, return_batch=False)
+
         if augmentation in ('images', 'all'):
             img_aug_seq = iaa.Sequential([
                 iaa.OneOf([
@@ -139,7 +144,6 @@ class MOTSynthDS(Dataset):
                                iaa.Add((-10, 10), per_channel=0.5),
                                iaa.Multiply((0.5, 1.5), per_channel=0.5),
                            ], random_order=True),
-                iaa.Resize(.5) if self.cnf.half_images else iaa.Identity()
             ], random_order=True)
             x_image = img_aug_seq(image=x_image)
 
@@ -209,7 +213,6 @@ class MOTSynthDS(Dataset):
                     int(round(joint['y2d'])),
                     int(round(cam_dist))
                 ]
-
 
                 # ignore the point if due to augmentation the point goes out of the screen
                 if min(center) < 0 or joint['x2d'] > w or joint['y2d'] > h or cam_dist > d:

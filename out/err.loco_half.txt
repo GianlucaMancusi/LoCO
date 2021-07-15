@@ -1,0 +1,1 @@
+/var/lib/slurm-llnl/slurmd/job1330256/slurm_script: line 13: 1780886 Killed                  python main.py --exp_name loco_half

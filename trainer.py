@@ -36,36 +36,36 @@ class Trainer(object):
         self.cnf = cnf
 
         # init code predictor
-        self.code_predictor = CodePredictor(half_images=cnf.half_images)
-        self.code_predictor = self.code_predictor.to(cnf.device)
+        self.code_predictor = CodePredictor(half_images=self.cnf.half_images)
+        self.code_predictor = self.code_predictor.to(self.cnf.device)
 
         # init volumetric heatmap autoencoder
         self.autoencoder = Autoencoder()
         self.autoencoder.eval()
         self.autoencoder.requires_grad(False)
-        self.autoencoder = self.autoencoder.to(cnf.device)
+        self.autoencoder = self.autoencoder.to(self.cnf.device)
 
         self.refiner = Refiner(pretrained=True)
         self.refiner.eval()
         self.refiner.requires_grad(False)
-        self.refiner = self.refiner.to(cnf.device)
+        self.refiner = self.refiner.to(self.cnf.device)
 
         # init optimizer
-        self.optimizer = optim.Adam(params=self.code_predictor.parameters(), lr=cnf.lr)
+        self.optimizer = optim.Adam(params=self.code_predictor.parameters(), lr=self.cnf.lr)
 
         # init dataset(s)
-        training_set = MOTSynthDS(mode='train', cnf=cnf)
-        test_set = MOTSynthDS(mode='test', cnf=cnf)
-        self.test_set_mot17 = MOT17TestDS(cnf=cnf)
+        training_set = MOTSynthDS(mode='train', cnf=self.cnf)
+        test_set = MOTSynthDS(mode='test', cnf=self.cnf)
+        self.test_set_mot17 = MOT17TestDS(cnf=self.cnf)
 
         # init train/test loader
-        self.train_loader = DataLoader(training_set, cnf.batch_size, num_workers=cnf.n_workers, shuffle=True)
-        self.test_loader = DataLoader(test_set, batch_size=1, num_workers=cnf.n_workers, shuffle=False)
-        self.test_mot17_loader = DataLoader(self.test_set_mot17, batch_size=1, num_workers=cnf.n_workers, shuffle=False)
+        self.train_loader = DataLoader(training_set, self.cnf.batch_size, num_workers=self.cnf.n_workers, shuffle=True)
+        self.test_loader = DataLoader(test_set, batch_size=1, num_workers=self.cnf.n_workers, shuffle=False)
+        self.test_mot17_loader = DataLoader(self.test_set_mot17, batch_size=1, num_workers=self.cnf.n_workers, shuffle=False)
 
         # init logging stuffs
-        self.log_path = cnf.exp_log_path
-        print(f'tensorboard --logdir={cnf.project_log_path.abspath()}\n')
+        self.log_path = self.cnf.exp_log_path
+        print(f'tensorboard --logdir={self.cnf.project_log_path.abspath()}\n')
         self.sw = SummaryWriter(self.log_path)
         self.log_freq = len(self.train_loader)
 
@@ -208,7 +208,7 @@ class Trainer(object):
 
             # get images to print on tensorboard
             original_image = original_image[0].numpy()
-            plt.imsave(f'out/imgs/img_test{step}.jpg', original_image)
+            plt.imsave(f'out/imgs/img_test{step}_{self.cnf.exp_name}.jpg', original_image)
             if step in list(range(0, self.cnf.test_set_len, self.cnf.test_set_len // 8)):
                 ground_truth_image = utils.get_3d_hmap_image(cnf=self.cnf, hmap=heatmap[0], image=original_image,
                                                              coords2d=None, normalize=False)

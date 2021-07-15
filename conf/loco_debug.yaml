@@ -13,13 +13,13 @@ NMS_TH: 0.1
 N_WORKERS: 2
 BATCH_SIZE: 1
 DEVICE: 'cuda'
-EPOCH_LEN: 1
+EPOCH_LEN: 10
 TEST_SET_LEN: 128
 
-MOTSYNTH_ANN_PATH: 'Z:/Datasets/MOTSynth_clean_2' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth_clean_2/'
-MOTSYNTH_PATH: 'Z:/Datasets/MOTSynth' #'/nas/softechict-nas-3/matteo/Datasets/MOTSynth/'
+MOTSYNTH_ANN_PATH: '/nas/softechict-nas-3/matteo/Datasets/MOTSynth_clean_2/' #'Z:/Datasets/MOTSynth_clean_2' #
+MOTSYNTH_PATH: '/nas/softechict-nas-3/matteo/Datasets/MOTSynth/' #'Z:/Datasets/MOTSynth' #
 
-MOT17_PATH: 'Z:/Datasets/MOTChallenge' #'/nas/softechict-nas-3/matteo/Datasets/MOTChallenge'
-MOT17_TEST_SET_LEN: 8
+MOT17_PATH: '/nas/softechict-nas-3/matteo/Datasets/MOTChallenge' #'Z:/Datasets/MOTChallenge' #
+MOT17_TEST_SET_LEN: 128
 
 DEBUG: 1

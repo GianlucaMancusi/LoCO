@@ -1,1 +1,26 @@
-slurmstepd-pippobaudo: error: *** JOB 1325731 ON pippobaudo CANCELLED AT 2021-07-10T13:22:54 ***
+Traceback (most recent call last):
+  File "main.py", line 45, in <module>
+    main()
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/click/core.py", line 1137, in __call__
+    return self.main(*args, **kwargs)
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/click/core.py", line 1062, in main
+    rv = self.invoke(ctx)
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/click/core.py", line 1404, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/click/core.py", line 763, in invoke
+    return __callback(*args, **kwargs)
+  File "main.py", line 41, in main
+    trainer.run()
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trainer.py", line 387, in run
+    self.test()
+  File "/nas/softechict-nas-3/matteo/PycharmProjects/gianlu/LoCO/trainer.py", line 188, in test
+    loss = nn.MSELoss()(code_pred, self.autoencoder.encode(heatmap))
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/torch/nn/modules/module.py", line 889, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/torch/nn/modules/loss.py", line 528, in forward
+    return F.mse_loss(input, target, reduction=self.reduction)
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/torch/nn/functional.py", line 2928, in mse_loss
+    expanded_input, expanded_target = torch.broadcast_tensors(input, target)
+  File "/homes/matteo/.conda/envs/loco_env/lib/python3.7/site-packages/torch/functional.py", line 74, in broadcast_tensors
+    return _VF.broadcast_tensors(tensors)  # type: ignore
+RuntimeError: The size of tensor a (120) must match the size of tensor b (60) at non-singleton dimension 4
